@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import toast, { Toaster } from 'react-hot-toast';
 import {
   Upload, Sliders, Download, ZoomIn, Sparkles,
   RotateCcw, RotateCw, FlipHorizontal, FlipVertical,
@@ -49,6 +50,12 @@ function App() {
   // ── Image loading ──────────────────────────────────────────────────────────
 
   const loadImageFromFile = useCallback((file: File) => {
+    const MAX_MB = 25;
+    if (file.size > MAX_MB * 1024 * 1024) {
+      toast.error(`File is too large (max ${MAX_MB} MB). Please choose a smaller image.`);
+      return;
+    }
+
     setImageType(file.type);
     transform.reset();
     cropTool.resetCrop();
@@ -61,12 +68,12 @@ function App() {
       img.onload = () => resize.init(img.width, img.height);
       img.onerror = () => {
         setSelectedImage(null);
-        alert('Failed to load image. The file may be corrupted or unsupported.');
+        toast.error('Failed to load image. The file may be corrupted or unsupported.');
       };
       img.src = src;
     };
     reader.onerror = () => {
-      alert('Failed to read the file. Please try again.');
+      toast.error('Failed to read the file. Please try again.');
     };
     reader.readAsDataURL(file);
   }, [transform, resize, cropTool]);
@@ -122,7 +129,7 @@ function App() {
 
     img.onerror = () => {
       setIsProcessing(false);
-      alert('Failed to process the image. Please try again.');
+      toast.error('Failed to process the image. Please try again.');
     };
 
     img.onload = async () => {
@@ -168,7 +175,7 @@ function App() {
       const ctx = canvas.getContext('2d');
       if (!ctx) {
         setIsProcessing(false);
-        alert('Failed to initialize canvas. Try a smaller image or refresh the page.');
+        toast.error('Failed to initialize canvas. Try a smaller image or refresh the page.');
         return;
       }
 
@@ -197,7 +204,7 @@ function App() {
           ctx.putImageData(denoised, 0, 0);
         } catch {
           setIsProcessing(false);
-          alert('Noise reduction failed. The image will be exported without it.');
+          toast.error('Noise reduction failed. The image will be exported without it.');
           return;
         }
       }
@@ -227,6 +234,13 @@ function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          style: { background: '#1e1b4b', color: '#e2e8f0', border: '1px solid rgba(255,255,255,0.1)' },
+          error: { duration: 5000 },
+        }}
+      />
       {/* Ambient blobs */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -left-40 w-96 h-96 bg-violet-600/20 rounded-full blur-3xl" />
@@ -272,6 +286,15 @@ function App() {
                   className="w-full h-full object-contain"
                   style={{ filter: filters.filterString, transform: transform.previewTransform }}
                 />
+                {isProcessing && (
+                  <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center gap-3 rounded-xl">
+                    <svg className="w-8 h-8 animate-spin text-violet-400" viewBox="0 0 24 24" fill="none" aria-label="Processing">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                    <span className="text-sm text-slate-300">Processing…</span>
+                  </div>
+                )}
                 {cropTool.cropMode && resize.originalDimensions && (
                   <CropOverlay
                     crop={cropTool.crop}
