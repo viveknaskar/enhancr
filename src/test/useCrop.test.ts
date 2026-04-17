@@ -11,37 +11,41 @@ describe('useCrop', () => {
     expect(result.current.isDragging).toBe(false);
   });
 
-  it('toggleCropMode enables crop mode', () => {
+  it('enterCropMode enables crop mode and resets selection', () => {
     const { result } = renderHook(() => useCrop());
-    act(() => result.current.toggleCropMode());
+    act(() => result.current.enterCropMode());
     expect(result.current.cropMode).toBe(true);
+    expect(result.current.crop).toEqual(DEFAULT_CROP);
   });
 
-  it('toggleCropMode disables crop mode when called again', () => {
+  it('applyCrop exits crop mode while keeping the selection', () => {
     const { result } = renderHook(() => useCrop());
-    act(() => result.current.toggleCropMode());
-    act(() => result.current.toggleCropMode());
-    expect(result.current.cropMode).toBe(false);
-  });
-
-  it('toggleCropMode resets crop to default when toggling', () => {
-    const { result } = renderHook(() => useCrop());
-    act(() => result.current.toggleCropMode());
-    // Simulate a pointer drag to move the crop
+    act(() => result.current.enterCropMode());
     const bounds = { x: 0, y: 0, w: 500, h: 500 };
-    const downEvent = { clientX: 0, clientY: 0, preventDefault: () => {}, stopPropagation: () => {}, currentTarget: { setPointerCapture: () => {} } } as unknown as React.PointerEvent;
-    act(() => result.current.onHandlePointerDown('se', downEvent));
-    const moveEvent = { clientX: 100, clientY: 100 } as unknown as React.PointerEvent;
-    act(() => result.current.onPointerMove(moveEvent, bounds));
-    // Now toggle — should reset crop
-    act(() => result.current.toggleCropMode());
-    act(() => result.current.toggleCropMode());
+    const down = { clientX: 0, clientY: 0, preventDefault: () => {}, stopPropagation: () => {}, currentTarget: { setPointerCapture: () => {} } } as unknown as React.PointerEvent;
+    act(() => result.current.onHandlePointerDown('se', down));
+    act(() => result.current.onPointerMove({ clientX: 200, clientY: 200 } as unknown as React.PointerEvent, bounds));
+    const selectionBeforeApply = { ...result.current.crop };
+    act(() => result.current.applyCrop());
+    expect(result.current.cropMode).toBe(false);
+    expect(result.current.crop).toEqual(selectionBeforeApply);
+  });
+
+  it('cancelCrop exits crop mode and resets selection to default', () => {
+    const { result } = renderHook(() => useCrop());
+    act(() => result.current.enterCropMode());
+    const bounds = { x: 0, y: 0, w: 500, h: 500 };
+    const down = { clientX: 0, clientY: 0, preventDefault: () => {}, stopPropagation: () => {}, currentTarget: { setPointerCapture: () => {} } } as unknown as React.PointerEvent;
+    act(() => result.current.onHandlePointerDown('se', down));
+    act(() => result.current.onPointerMove({ clientX: 200, clientY: 200 } as unknown as React.PointerEvent, bounds));
+    act(() => result.current.cancelCrop());
+    expect(result.current.cropMode).toBe(false);
     expect(result.current.crop).toEqual(DEFAULT_CROP);
   });
 
   it('resetCrop restores default crop and exits crop mode', () => {
     const { result } = renderHook(() => useCrop());
-    act(() => result.current.toggleCropMode());
+    act(() => result.current.enterCropMode());
     act(() => result.current.resetCrop());
     expect(result.current.cropMode).toBe(false);
     expect(result.current.crop).toEqual(DEFAULT_CROP);

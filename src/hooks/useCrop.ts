@@ -24,9 +24,20 @@ export function useCrop() {
     setCropState(next);
   }, []);
 
-  const toggleCropMode = useCallback(() => {
+  const enterCropMode = useCallback(() => {
     setCrop(DEFAULT_CROP);
-    setCropMode((v) => !v);
+    setCropMode(true);
+  }, [setCrop]);
+
+  /** Keep the current selection and exit crop mode. */
+  const applyCrop = useCallback(() => {
+    setCropMode(false);
+  }, []);
+
+  /** Discard the selection and exit crop mode. */
+  const cancelCrop = useCallback(() => {
+    setCrop(DEFAULT_CROP);
+    setCropMode(false);
   }, [setCrop]);
 
   /** Reset crop selection and exit crop mode. Call on new image load and global reset. */
@@ -84,5 +95,5 @@ export function useCrop() {
     setIsDragging(false);
   }, []);
 
-  return { cropMode, toggleCropMode, crop, resetCrop, onHandlePointerDown, onPointerMove, onPointerUp, isDragging };
+  return { cropMode, enterCropMode, applyCrop, cancelCrop, crop, resetCrop, onHandlePointerDown, onPointerMove, onPointerUp, isDragging };
 }

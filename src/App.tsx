@@ -250,12 +250,13 @@ function App() {
 
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-10">
         {/* Header */}
-        <div className="text-center mb-8">
+        <header className="text-center mb-8">
           <div className="flex justify-center mb-3">
-            <img src="/enhancr/logo.svg" alt="Enhancr" className="h-14" />
+            <img src="/enhancr/logo.svg" alt="" className="h-14" aria-hidden="true" />
           </div>
+          <h1 className="sr-only">Enhancr</h1>
           <p className="text-slate-400 text-sm">Upload an image and enhance it with real-time filters</p>
-        </div>
+        </header>
 
         {/* ── Upload / Preview ── */}
         <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5 mb-5">
@@ -392,22 +393,35 @@ function App() {
                 </IconBtn>
               </div>
 
-              {/* Crop toggle */}
+              {/* Crop */}
               <div className="mt-2 border-t border-white/5 pt-3">
-                <IconBtn
-                  onClick={cropTool.toggleCropMode}
-                  active={cropTool.cropMode}
-                  title="Crop image"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Crop className="w-4 h-4" />
-                    <span>{cropTool.cropMode ? 'Exit Crop' : 'Crop'}</span>
-                  </div>
-                </IconBtn>
-                {cropTool.cropMode && (
-                  <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                    Drag the box or handles to select a region. Click Download to apply.
-                  </p>
+                {cropTool.cropMode ? (
+                  <>
+                    <p className="text-xs text-slate-500 mb-2 leading-relaxed">
+                      Drag the box or handles to select a region.
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={cropTool.applyCrop}
+                        className="flex-1 py-1.5 text-xs rounded-lg font-semibold bg-violet-600 hover:bg-violet-500 text-white transition-colors"
+                      >
+                        Apply
+                      </button>
+                      <button
+                        onClick={cropTool.cancelCrop}
+                        className="flex-1 py-1.5 text-xs rounded-lg font-semibold bg-white/10 hover:bg-white/15 text-slate-300 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <IconBtn onClick={cropTool.enterCropMode} title="Crop image">
+                    <div className="flex items-center gap-1.5">
+                      <Crop className="w-4 h-4" />
+                      <span>Crop</span>
+                    </div>
+                  </IconBtn>
                 )}
               </div>
             </div>
@@ -534,19 +548,16 @@ function App() {
 
                 {showBgColor && (
                   <div>
-                    <p className="text-sm text-slate-300 mb-2">Background Color</p>
+                    <label htmlFor="bg-color-picker" className="text-sm text-slate-300 mb-2 block">Background Color</label>
                     <div className="flex items-center gap-3 bg-black/20 border border-white/10 rounded-xl px-3 py-2">
-                      <label className="flex items-center gap-3">
-                        <span className="sr-only">Background Color</span>
-                        <input
-                          type="color"
-                          value={exportSettings.bgColor}
-                          onChange={(e) => exportSettings.setBgColor(e.target.value)}
-                          aria-label="Background color"
-                          className="w-7 h-7 rounded cursor-pointer border-0 bg-transparent p-0"
-                        />
-                      </label>
-                      <span className="text-sm text-slate-300 font-mono">{exportSettings.bgColor}</span>
+                      <input
+                        id="bg-color-picker"
+                        type="color"
+                        value={exportSettings.bgColor}
+                        onChange={(e) => exportSettings.setBgColor(e.target.value)}
+                        className="w-7 h-7 rounded cursor-pointer border-0 bg-transparent p-0"
+                      />
+                      <span className="text-sm text-slate-300 font-mono" aria-hidden="true">{exportSettings.bgColor}</span>
                     </div>
                   </div>
                 )}

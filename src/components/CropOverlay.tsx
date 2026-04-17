@@ -124,17 +124,29 @@ export function CropOverlay({
       </div>
 
       {/* Dimension label */}
-      <div
-        style={{
-          position: 'absolute',
-          left: boxLeft,
-          top: Math.max(0, boxTop - 26),
-          pointerEvents: 'none',
-        }}
-        className="text-xs font-mono text-white bg-black/60 px-2 py-0.5 rounded"
-      >
-        {Math.round(crop.w * naturalWidth)} × {Math.round(crop.h * naturalHeight)} px
-      </div>
+      {(() => {
+        const w = Math.round(crop.w * naturalWidth);
+        const h = Math.round(crop.h * naturalHeight);
+        return (
+          <>
+            <div
+              style={{
+                position: 'absolute',
+                left: boxLeft,
+                top: Math.max(0, boxTop - 26),
+                pointerEvents: 'none',
+              }}
+              className="text-xs font-mono text-white bg-black/60 px-2 py-0.5 rounded"
+              aria-hidden="true"
+            >
+              {w} × {h} px
+            </div>
+            <span className="sr-only" role="status" aria-live="polite">
+              Crop selection: {w} by {h} pixels
+            </span>
+          </>
+        );
+      })()}
     </div>
   );
 }
