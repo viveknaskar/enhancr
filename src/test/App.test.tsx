@@ -124,6 +124,7 @@ describe('App — convert mode', () => {
     render(<App />);
     expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Convert' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Reduce' })).toBeInTheDocument();
   });
 
   it('switches to convert mode and hides editing sections', async () => {
@@ -132,6 +133,16 @@ describe('App — convert mode', () => {
     expect(screen.getByText(/Choose a target format and download a converted copy/i)).toBeInTheDocument();
     expect(screen.queryByText('Transform')).not.toBeInTheDocument();
     expect(screen.queryByText('Color Adjustments')).not.toBeInTheDocument();
+  });
+});
+
+describe('App — reduce mode', () => {
+  it('switches to reduce mode and shows the reduction panel', async () => {
+    render(<App />);
+    await userEvent.click(screen.getByRole('button', { name: 'Reduce' }));
+    expect(screen.getByText(/Reduce file size by resizing the image/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /reduce image/i })).toBeInTheDocument();
+    expect(screen.queryByText('Transform')).not.toBeInTheDocument();
   });
 });
 

@@ -40,7 +40,7 @@ function App() {
   const [imageType, setImageType] = useState('image/jpeg');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [mode, setMode] = useState<'edit' | 'convert'>('edit');
+  const [mode, setMode] = useState<'edit' | 'convert' | 'reduce'>('edit');
   const [mobileTab, setMobileTab] = useState<'transform' | 'color' | 'enhancement'>('transform');
   const [showOriginal, setShowOriginal] = useState(false);
 
@@ -140,6 +140,9 @@ function App() {
   const showQuality = outputMime === 'image/jpeg' || outputMime === 'image/webp';
   const sourceFormatLabel = imageType.replace('image/', '').toUpperCase();
   const outputFormatLabel = outputMime.replace('image/', '').toUpperCase();
+  const isEditMode = mode === 'edit';
+  const isConvertMode = mode === 'convert';
+  const isReduceMode = mode === 'reduce';
 
   // ── Image loading ──────────────────────────────────────────────────────────
 
@@ -353,15 +356,17 @@ function App() {
           </div>
           <h1 className="sr-only">Enhancr</h1>
           <p className="text-slate-400 text-sm">
-            {mode === 'edit'
+            {isEditMode
               ? 'Upload an image and enhance it with real-time filters'
-              : 'Upload an image and convert it locally in your browser'}
+              : isConvertMode
+                ? 'Upload an image and convert it locally in your browser'
+                : 'Upload an image and reduce file size with resize and compression controls'}
           </p>
           <div className="mt-4 inline-flex rounded-xl bg-white/5 border border-white/10 p-1 gap-1">
             <button
               onClick={() => setMode('edit')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                mode === 'edit' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white'
+                isEditMode ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white'
               }`}
             >
               Edit
@@ -372,10 +377,22 @@ function App() {
                 if (exportSettings.format === 'auto') exportSettings.setFormat('jpg');
               }}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                mode === 'convert' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white'
+                isConvertMode ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white'
               }`}
             >
               Convert
+            </button>
+            <button
+              onClick={() => {
+                setMode('reduce');
+                if (!resize.enabled) resize.setEnabled(true);
+                if (exportSettings.format === 'auto') exportSettings.setFormat('jpg');
+              }}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isReduceMode ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Reduce
             </button>
           </div>
         </header>
@@ -412,7 +429,7 @@ function App() {
                     transform: showOriginal ? 'none' : transform.previewTransform,
                   }}
                 />
-                {!isProcessing && !cropTool.cropMode && mode === 'edit' && (
+                {!isProcessing && !cropTool.cropMode && isEditMode && (
                   <button
                     onPointerDown={() => setShowOriginal(true)}
                     onPointerUp={() => setShowOriginal(false)}
@@ -479,7 +496,7 @@ function App() {
           )}
         </div>
 
-        {mode === 'edit' ? (
+        {isEditMode ? (
           <>
             {/* ── Mobile tab bar (hidden on md+) ── */}
             <div className="md:hidden flex rounded-xl bg-white/5 border border-white/10 p-1 mb-3 gap-1">
@@ -722,7 +739,7 @@ function App() {
           </div>
             </div>
           </>
-        ) : (
+        ) : isConvertMode ? (
           <div className="max-w-2xl mx-auto">
             <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5">
               <SectionHeader icon={<Sliders className="w-3.5 h-3.5" />} label="Convert" />
@@ -794,11 +811,162 @@ function App() {
               </div>
             </div>
           </div>
+        ) : (
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5">
+              <SectionHeader icon={<Maximize2 className="w-3.5 h-3.5" />} label="Reduce" />
+              <p className="text-sm text-slate-400 mb-4">
+                Reduce file size by resizing the image, lowering quality, or exporting to a more compact format.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3">
+                  <p className="text-xs uppercase tracking-widest text-slate-500">Source</p>
+                  <p className="text-sm font-semibold text-slate-200">{selectedImage ? sourceFormatLabel : 'No file selected'}</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3">
+                  <p className="text-xs uppercase tracking-widest text-slate-500">Original Size</p>
+                  <p className="text-sm font-semibold text-slate-200">
+                    {resize.originalDimensions ? `${resize.originalDimensions.w} × ${resize.originalDimensions.h}` : 'Unknown'}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3">
+                  <p className="text-xs uppercase tracking-widest text-slate-500">Output</p>
+                  <p className="text-sm font-semibold text-slate-200">
+                    {outDims ? `${outDims.w} × ${outDims.h} ${outputFormatLabel}` : outputFormatLabel}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-sm text-slate-300">Resize</span>
+                    <button
+                      onClick={withHistory(() => resize.setEnabled((v) => !v))}
+                      className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
+                        resize.enabled ? 'bg-violet-600 text-white' : 'bg-white/10 text-slate-400 hover:bg-white/15'
+                      }`}
+                    >
+                      {resize.enabled ? 'On' : 'Off'}
+                    </button>
+                  </div>
+
+                  {resize.enabled ? (
+                    <div className="space-y-3">
+                      <div className="flex items-end gap-2">
+                        <div className="flex-1">
+                          <label className="text-xs text-slate-500 mb-1 block">Width</label>
+                          <input
+                            type="number"
+                            min={1}
+                            value={resize.width}
+                            onChange={withHistory((e: React.ChangeEvent<HTMLInputElement>) => resize.handleWidthChange(Number(e.target.value)))}
+                            className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200 outline-none focus:border-violet-500/60 transition-colors"
+                          />
+                        </div>
+                        <button
+                          onClick={withHistory(() => resize.setLockAspect((v) => !v))}
+                          title={resize.lockAspect ? 'Unlock aspect ratio' : 'Lock aspect ratio'}
+                          className={`p-2 rounded-lg transition-colors ${resize.lockAspect ? 'text-violet-400 bg-violet-500/15' : 'text-slate-500 bg-white/5 hover:bg-white/10'}`}
+                        >
+                          {resize.lockAspect ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+                        </button>
+                        <div className="flex-1">
+                          <label className="text-xs text-slate-500 mb-1 block">Height</label>
+                          <input
+                            type="number"
+                            min={1}
+                            value={resize.height}
+                            onChange={withHistory((e: React.ChangeEvent<HTMLInputElement>) => resize.handleHeightChange(Number(e.target.value)))}
+                            className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200 outline-none focus:border-violet-500/60 transition-colors"
+                          />
+                        </div>
+                        <select
+                          value={resize.unit}
+                          onChange={withHistory((e: React.ChangeEvent<HTMLSelectElement>) => resize.handleUnitChange(e.target.value as typeof resize.unit))}
+                          className="bg-black/30 border border-white/10 rounded-lg px-2 py-2 text-sm text-slate-300 outline-none focus:border-violet-500/60 transition-colors"
+                        >
+                          <option value="px">px</option>
+                          <option value="%">%</option>
+                        </select>
+                      </div>
+
+                      {resize.unit === 'px' && (
+                        <div className="flex gap-2">
+                          {(['fit', 'stretch', 'crop'] as ResizeMode[]).map((m) => (
+                            <button
+                              key={m}
+                              onClick={withHistory(() => resize.setMode(m))}
+                              className={`flex-1 py-1.5 text-xs rounded-lg capitalize transition-colors ${resize.mode === m ? 'bg-violet-600 text-white' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
+                            >
+                              {m}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-500">Leave resize off to keep the original dimensions and only reduce by format or quality.</p>
+                  )}
+                </div>
+
+                <div>
+                  <p className="text-sm text-slate-300 mb-2">Format</p>
+                  <div className="flex gap-2">
+                    {(['jpg', 'png', 'webp'] as ExportFormat[]).map((fmt) => (
+                      <button
+                        key={fmt}
+                        onClick={() => exportSettings.setFormat(fmt)}
+                        className={`flex-1 py-2 text-xs rounded-lg uppercase font-medium transition-colors ${exportSettings.format === fmt ? 'bg-violet-600 text-white' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
+                      >
+                        {fmt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {showQuality && (
+                  <SliderRow label="Quality" value={filters.filters.quality} displayValue={`${filters.filters.quality}%`} min={1} max={100} defaultValue={FILTER_DEFAULTS.quality} onChange={(v) => filters.setFilter('quality', v)} />
+                )}
+
+                {showBgColor && (
+                  <div>
+                    <label htmlFor="bg-color-picker" className="text-sm text-slate-300 mb-2 block">Background Color</label>
+                    <div className="flex items-center gap-3 bg-black/20 border border-white/10 rounded-xl px-3 py-2">
+                      <input
+                        id="bg-color-picker"
+                        type="color"
+                        value={exportSettings.bgColor}
+                        onChange={(e) => exportSettings.setBgColor(e.target.value)}
+                        className="w-7 h-7 rounded cursor-pointer border-0 bg-transparent p-0"
+                      />
+                      <span className="text-sm text-slate-300 font-mono" aria-hidden="true">{exportSettings.bgColor}</span>
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <p className="text-sm text-slate-300 mb-2">File Name</p>
+                  <div className="flex items-center gap-2 bg-black/20 border border-white/10 rounded-xl px-3 py-2 focus-within:border-violet-500/60 transition-colors">
+                    <input
+                      type="text"
+                      value={exportSettings.fileName}
+                      onChange={(e) => exportSettings.setFileName(e.target.value)}
+                      placeholder="reduced-image"
+                      className="flex-1 bg-transparent text-sm text-slate-200 placeholder-slate-500 outline-none"
+                    />
+                    <span className="text-xs text-slate-500 shrink-0">.{exportSettings.getExtension()}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* ── Action buttons ── */}
         <div className="flex gap-3 mt-5">
-          {mode === 'edit' && (
+          {isEditMode && (
             <>
               <button
                 onClick={resetAll}
@@ -847,7 +1015,7 @@ function App() {
             ) : (
               <>
                 <Download className="w-4 h-4" />
-                {mode === 'convert' ? 'Convert Image' : 'Download Image'}
+                {isConvertMode ? 'Convert Image' : isReduceMode ? 'Reduce Image' : 'Download Image'}
               </>
             )}
           </button>
