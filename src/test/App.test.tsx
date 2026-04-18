@@ -119,6 +119,22 @@ describe('App — mobile tab bar', () => {
   });
 });
 
+describe('App — convert mode', () => {
+  it('renders edit and convert mode buttons', () => {
+    render(<App />);
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Convert' })).toBeInTheDocument();
+  });
+
+  it('switches to convert mode and hides editing sections', async () => {
+    render(<App />);
+    await userEvent.click(screen.getByRole('button', { name: 'Convert' }));
+    expect(screen.getByText(/Choose a target format and download a converted copy/i)).toBeInTheDocument();
+    expect(screen.queryByText('Transform')).not.toBeInTheDocument();
+    expect(screen.queryByText('Color Adjustments')).not.toBeInTheDocument();
+  });
+});
+
 describe('App — accessibility', () => {
   it('file input accepts image types', () => {
     render(<App />);

@@ -40,6 +40,7 @@ function App() {
   const [imageType, setImageType] = useState('image/jpeg');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [mode, setMode] = useState<'edit' | 'convert'>('edit');
   const [mobileTab, setMobileTab] = useState<'transform' | 'color' | 'enhancement'>('transform');
   const [showOriginal, setShowOriginal] = useState(false);
 
@@ -137,6 +138,8 @@ function App() {
   const outputMime = exportSettings.getMimeType();
   const showBgColor = outputMime === 'image/jpeg';
   const showQuality = outputMime === 'image/jpeg' || outputMime === 'image/webp';
+  const sourceFormatLabel = imageType.replace('image/', '').toUpperCase();
+  const outputFormatLabel = outputMime.replace('image/', '').toUpperCase();
 
   // ── Image loading ──────────────────────────────────────────────────────────
 
@@ -349,7 +352,32 @@ function App() {
             <img src="/enhancr/logo.svg" alt="" className="h-14" aria-hidden="true" />
           </div>
           <h1 className="sr-only">Enhancr</h1>
-          <p className="text-slate-400 text-sm">Upload an image and enhance it with real-time filters</p>
+          <p className="text-slate-400 text-sm">
+            {mode === 'edit'
+              ? 'Upload an image and enhance it with real-time filters'
+              : 'Upload an image and convert it locally in your browser'}
+          </p>
+          <div className="mt-4 inline-flex rounded-xl bg-white/5 border border-white/10 p-1 gap-1">
+            <button
+              onClick={() => setMode('edit')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                mode === 'edit' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Edit
+            </button>
+            <button
+              onClick={() => {
+                setMode('convert');
+                if (exportSettings.format === 'auto') exportSettings.setFormat('jpg');
+              }}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                mode === 'convert' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Convert
+            </button>
+          </div>
         </header>
 
         {/* ── Upload / Preview ── */}
@@ -384,7 +412,7 @@ function App() {
                     transform: showOriginal ? 'none' : transform.previewTransform,
                   }}
                 />
-                {!isProcessing && !cropTool.cropMode && (
+                {!isProcessing && !cropTool.cropMode && mode === 'edit' && (
                   <button
                     onPointerDown={() => setShowOriginal(true)}
                     onPointerUp={() => setShowOriginal(false)}
@@ -451,30 +479,32 @@ function App() {
           )}
         </div>
 
-        {/* ── Mobile tab bar (hidden on md+) ── */}
-        <div className="md:hidden flex rounded-xl bg-white/5 border border-white/10 p-1 mb-3 gap-1">
-          {([
-            { id: 'transform',   label: 'Transform',   icon: <RotateCw className="w-3.5 h-3.5" /> },
-            { id: 'color',       label: 'Colors',      icon: <Sparkles className="w-3.5 h-3.5" /> },
-            { id: 'enhancement', label: 'Enhancement', icon: <ZoomIn className="w-3.5 h-3.5" /> },
-          ] as const).map(({ id, label, icon }) => (
-            <button
-              key={id}
-              onClick={() => setMobileTab(id)}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-colors ${
-                mobileTab === id
-                  ? 'bg-violet-600 text-white'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              {icon}
-              {label}
-            </button>
-          ))}
-        </div>
+        {mode === 'edit' ? (
+          <>
+            {/* ── Mobile tab bar (hidden on md+) ── */}
+            <div className="md:hidden flex rounded-xl bg-white/5 border border-white/10 p-1 mb-3 gap-1">
+              {([
+                { id: 'transform',   label: 'Transform',   icon: <RotateCw className="w-3.5 h-3.5" /> },
+                { id: 'color',       label: 'Colors',      icon: <Sparkles className="w-3.5 h-3.5" /> },
+                { id: 'enhancement', label: 'Enhancement', icon: <ZoomIn className="w-3.5 h-3.5" /> },
+              ] as const).map(({ id, label, icon }) => (
+                <button
+                  key={id}
+                  onClick={() => setMobileTab(id)}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-colors ${
+                    mobileTab === id
+                      ? 'bg-violet-600 text-white'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {icon}
+                  {label}
+                </button>
+              ))}
+            </div>
 
-        {/* ── Feature cards grid ── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 items-start">
+            {/* ── Feature cards grid ── */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 items-start">
 
           {/* Column 1: Transform + Resize */}
           <div className={`flex flex-col gap-5 md:flex ${mobileTab === 'transform' ? 'flex' : 'hidden'}`}>
@@ -690,34 +720,112 @@ function App() {
               </div>
             </div>
           </div>
-        </div>
+            </div>
+          </>
+        ) : (
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5">
+              <SectionHeader icon={<Sliders className="w-3.5 h-3.5" />} label="Convert" />
+              <p className="text-sm text-slate-400 mb-4">
+                Choose a target format and download a converted copy without using the editing tools.
+              </p>
+
+              <div className="flex items-center justify-between rounded-xl border border-white/10 bg-black/20 px-4 py-3 mb-4">
+                <div>
+                  <p className="text-xs uppercase tracking-widest text-slate-500">Source</p>
+                  <p className="text-sm font-semibold text-slate-200">{selectedImage ? sourceFormatLabel : 'No file selected'}</p>
+                </div>
+                <div className="text-violet-400 text-lg">→</div>
+                <div className="text-right">
+                  <p className="text-xs uppercase tracking-widest text-slate-500">Target</p>
+                  <p className="text-sm font-semibold text-slate-200">{outputFormatLabel}</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-slate-300 mb-2">Format</p>
+                  <div className="flex gap-2">
+                    {(['jpg', 'png', 'webp'] as ExportFormat[]).map((fmt) => (
+                      <button
+                        key={fmt}
+                        onClick={() => exportSettings.setFormat(fmt)}
+                        className={`flex-1 py-2 text-xs rounded-lg uppercase font-medium transition-colors ${exportSettings.format === fmt ? 'bg-violet-600 text-white' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
+                      >
+                        {fmt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {showBgColor && (
+                  <div>
+                    <label htmlFor="bg-color-picker" className="text-sm text-slate-300 mb-2 block">Background Color</label>
+                    <div className="flex items-center gap-3 bg-black/20 border border-white/10 rounded-xl px-3 py-2">
+                      <input
+                        id="bg-color-picker"
+                        type="color"
+                        value={exportSettings.bgColor}
+                        onChange={(e) => exportSettings.setBgColor(e.target.value)}
+                        className="w-7 h-7 rounded cursor-pointer border-0 bg-transparent p-0"
+                      />
+                      <span className="text-sm text-slate-300 font-mono" aria-hidden="true">{exportSettings.bgColor}</span>
+                    </div>
+                  </div>
+                )}
+
+                {showQuality && (
+                  <SliderRow label="Quality" value={filters.filters.quality} displayValue={`${filters.filters.quality}%`} min={1} max={100} defaultValue={FILTER_DEFAULTS.quality} onChange={(v) => filters.setFilter('quality', v)} />
+                )}
+
+                <div>
+                  <p className="text-sm text-slate-300 mb-2">File Name</p>
+                  <div className="flex items-center gap-2 bg-black/20 border border-white/10 rounded-xl px-3 py-2 focus-within:border-violet-500/60 transition-colors">
+                    <input
+                      type="text"
+                      value={exportSettings.fileName}
+                      onChange={(e) => exportSettings.setFileName(e.target.value)}
+                      placeholder="converted-image"
+                      className="flex-1 bg-transparent text-sm text-slate-200 placeholder-slate-500 outline-none"
+                    />
+                    <span className="text-xs text-slate-500 shrink-0">.{exportSettings.getExtension()}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── Action buttons ── */}
         <div className="flex gap-3 mt-5">
-          <button
-            onClick={resetAll}
-            className="px-5 py-3 rounded-xl text-sm font-medium border border-white/10 text-slate-400 hover:text-white hover:border-white/20 transition-colors"
-          >
-            Reset
-          </button>
-          <button
-            onClick={handleUndo}
-            disabled={!history.canUndo}
-            title="Undo (Ctrl+Z)"
-            aria-label="Undo"
-            className="px-4 py-3 rounded-xl text-sm font-medium border border-white/10 text-slate-400 hover:text-white hover:border-white/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-          >
-            ↩
-          </button>
-          <button
-            onClick={handleRedo}
-            disabled={!history.canRedo}
-            title="Redo (Ctrl+Shift+Z)"
-            aria-label="Redo"
-            className="px-4 py-3 rounded-xl text-sm font-medium border border-white/10 text-slate-400 hover:text-white hover:border-white/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-          >
-            ↪
-          </button>
+          {mode === 'edit' && (
+            <>
+              <button
+                onClick={resetAll}
+                className="px-5 py-3 rounded-xl text-sm font-medium border border-white/10 text-slate-400 hover:text-white hover:border-white/20 transition-colors"
+              >
+                Reset
+              </button>
+              <button
+                onClick={handleUndo}
+                disabled={!history.canUndo}
+                title="Undo (Ctrl+Z)"
+                aria-label="Undo"
+                className="px-4 py-3 rounded-xl text-sm font-medium border border-white/10 text-slate-400 hover:text-white hover:border-white/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                ↩
+              </button>
+              <button
+                onClick={handleRedo}
+                disabled={!history.canRedo}
+                title="Redo (Ctrl+Shift+Z)"
+                aria-label="Redo"
+                className="px-4 py-3 rounded-xl text-sm font-medium border border-white/10 text-slate-400 hover:text-white hover:border-white/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                ↪
+              </button>
+            </>
+          )}
 
           <button
             onClick={downloadImage}
@@ -739,7 +847,7 @@ function App() {
             ) : (
               <>
                 <Download className="w-4 h-4" />
-                Download Image
+                {mode === 'convert' ? 'Convert Image' : 'Download Image'}
               </>
             )}
           </button>
