@@ -40,9 +40,12 @@ function App() {
   const [imageType, setImageType] = useState('image/jpeg');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [mode, setMode] = useState<'edit' | 'convert' | 'reduce'>('edit');
+  const [mode, setMode] = useState<'edit' | 'convert' | 'reduce' | 'split'>('edit');
   const [mobileTab, setMobileTab] = useState<'transform' | 'color' | 'enhancement'>('transform');
   const [showOriginal, setShowOriginal] = useState(false);
+  const [splitDirection, setSplitDirection] = useState<'vertical' | 'horizontal' | 'grid'>('grid');
+  const [splitColumns, setSplitColumns] = useState(2);
+  const [splitRows, setSplitRows] = useState(2);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const activeWorkerRef = useRef<Worker | null>(null);
@@ -143,6 +146,7 @@ function App() {
   const isEditMode = mode === 'edit';
   const isConvertMode = mode === 'convert';
   const isReduceMode = mode === 'reduce';
+  const isSplitMode = mode === 'split';
 
   // ── Image loading ──────────────────────────────────────────────────────────
 
@@ -216,98 +220,107 @@ function App() {
       worker.postMessage({ data: copy, width: imageData.width, height: imageData.height, strength }, [copy.buffer]);
     }), []);
 
-  // ── Download ───────────────────────────────────────────────────────────────
+  const renderProcessedCanvas = useCallback(async (): Promise<HTMLCanvasElement> => {
+    if (!selectedImage) throw new Error('No image selected');
+
+    const canvas = document.createElement('canvas');
+
+    await new Promise<void>((resolve, reject) => {
+      const img = new Image();
+      img.src = selectedImage;
+
+      img.onerror = () => reject(new Error('Failed to process the image. Please try again.'));
+
+      img.onload = async () => {
+        try {
+      // Apply the user's crop selection (fractional → native pixels).
+      // When crop mode is off, crop is DEFAULT_CROP {0,0,1,1} — a no-op.
+          const cX = Math.round(cropTool.crop.x * img.width);
+          const cY = Math.round(cropTool.crop.y * img.height);
+          const cW = Math.round(cropTool.crop.w * img.width);
+          const cH = Math.round(cropTool.crop.h * img.height);
+
+          let srcX = 0, srcY = 0, srcW = cW, srcH = cH;
+          let outW = cW, outH = cH;
+
+          if (resize.enabled) {
+            if (resize.unit === '%') {
+              outW = Math.round(cW * resize.width / 100);
+              outH = Math.round(cH * resize.height / 100);
+            } else {
+              const tw = resize.width || cW;
+              const th = resize.height || cH;
+              if (resize.mode === 'stretch') {
+                outW = tw; outH = th;
+              } else if (resize.mode === 'fit') {
+                const scale = Math.min(tw / cW, th / cH);
+                outW = Math.round(cW * scale);
+                outH = Math.round(cH * scale);
+              } else {
+                // resize crop: scale to fill, then center-crop within the user-cropped region
+                outW = tw; outH = th;
+                const scale = Math.max(tw / cW, th / cH);
+                srcW = cW / scale;
+                srcH = cH / scale;
+                srcX = (cW - srcW) / 2;
+                srcY = (cH - srcH) / 2;
+              }
+            }
+          }
+
+          const isSwapped = transform.rotation === 90 || transform.rotation === 270;
+          canvas.width = isSwapped ? outH : outW;
+          canvas.height = isSwapped ? outW : outH;
+
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Failed to initialize canvas. Try a smaller image or refresh the page.'));
+            return;
+          }
+
+          const mime = exportSettings.getMimeType();
+          if (mime === 'image/jpeg') {
+            ctx.fillStyle = exportSettings.bgColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+          }
+
+          const cx = canvas.width / 2;
+          const cy = canvas.height / 2;
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.rotate((transform.rotation * Math.PI) / 180);
+          if (transform.flipH) ctx.scale(-1, 1);
+          if (transform.flipV) ctx.scale(1, -1);
+          ctx.filter = filters.filterString;
+          ctx.drawImage(img, cX + srcX, cY + srcY, srcW, srcH, -outW / 2, -outH / 2, outW, outH);
+          ctx.filter = 'none';
+          ctx.restore();
+
+          if (filters.filters.denoise > 0) {
+            const id = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const denoised = await applyDenoiseInWorker(id, filters.filters.denoise / 100);
+            ctx.putImageData(denoised, 0, 0);
+          }
+
+          resolve();
+        } catch (error) {
+          reject(error instanceof Error ? error : new Error('Failed to process the image. Please try again.'));
+        }
+      };
+    });
+
+    return canvas;
+  }, [selectedImage, cropTool.crop, resize.enabled, resize.height, resize.mode, resize.unit, resize.width, transform.rotation, transform.flipH, transform.flipV, filters.filterString, filters.filters.denoise, exportSettings, applyDenoiseInWorker]);
+
+  // ── Download / Split ───────────────────────────────────────────────────────
 
   const downloadImage = useCallback(async () => {
     if (!selectedImage) return;
     setIsProcessing(true);
 
-    const canvas = document.createElement('canvas');
-    const img = new Image();
-    img.src = selectedImage;
-
-    img.onerror = () => {
-      setIsProcessing(false);
-      toast.error('Failed to process the image. Please try again.');
-    };
-
-    img.onload = async () => {
-      // Apply the user's crop selection (fractional → native pixels).
-      // When crop mode is off, crop is DEFAULT_CROP {0,0,1,1} — a no-op.
-      const cX = Math.round(cropTool.crop.x * img.width);
-      const cY = Math.round(cropTool.crop.y * img.height);
-      const cW = Math.round(cropTool.crop.w * img.width);
-      const cH = Math.round(cropTool.crop.h * img.height);
-
-      let srcX = 0, srcY = 0, srcW = cW, srcH = cH;
-      let outW = cW, outH = cH;
-
-      if (resize.enabled) {
-        if (resize.unit === '%') {
-          outW = Math.round(cW * resize.width / 100);
-          outH = Math.round(cH * resize.height / 100);
-        } else {
-          const tw = resize.width || cW;
-          const th = resize.height || cH;
-          if (resize.mode === 'stretch') {
-            outW = tw; outH = th;
-          } else if (resize.mode === 'fit') {
-            const scale = Math.min(tw / cW, th / cH);
-            outW = Math.round(cW * scale);
-            outH = Math.round(cH * scale);
-          } else {
-            // resize crop: scale to fill, then center-crop within the user-cropped region
-            outW = tw; outH = th;
-            const scale = Math.max(tw / cW, th / cH);
-            srcW = cW / scale;
-            srcH = cH / scale;
-            srcX = (cW - srcW) / 2;
-            srcY = (cH - srcH) / 2;
-          }
-        }
-      }
-
-      const isSwapped = transform.rotation === 90 || transform.rotation === 270;
-      canvas.width = isSwapped ? outH : outW;
-      canvas.height = isSwapped ? outW : outH;
-
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        setIsProcessing(false);
-        toast.error('Failed to initialize canvas. Try a smaller image or refresh the page.');
-        return;
-      }
-
+    try {
+      const canvas = await renderProcessedCanvas();
       const mime = exportSettings.getMimeType();
-      if (mime === 'image/jpeg') {
-        ctx.fillStyle = exportSettings.bgColor;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-      }
-
-      const cx = canvas.width / 2;
-      const cy = canvas.height / 2;
-      ctx.save();
-      ctx.translate(cx, cy);
-      ctx.rotate((transform.rotation * Math.PI) / 180);
-      if (transform.flipH) ctx.scale(-1, 1);
-      if (transform.flipV) ctx.scale(1, -1);
-      ctx.filter = filters.filterString;
-      ctx.drawImage(img, cX + srcX, cY + srcY, srcW, srcH, -outW / 2, -outH / 2, outW, outH);
-      ctx.filter = 'none';
-      ctx.restore();
-
-      if (filters.filters.denoise > 0) {
-        try {
-          const id = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          const denoised = await applyDenoiseInWorker(id, filters.filters.denoise / 100);
-          ctx.putImageData(denoised, 0, 0);
-        } catch {
-          setIsProcessing(false);
-          toast.error('Noise reduction failed. The image will be exported without it.');
-          return;
-        }
-      }
-
       const ext = exportSettings.getExtension();
       const quality = (mime === 'image/jpeg' || mime === 'image/webp')
         ? filters.filters.quality / 100
@@ -316,9 +329,57 @@ function App() {
       link.download = `${exportSettings.fileName.trim() || 'enhanced-image'}.${ext}`;
       link.href = canvas.toDataURL(mime, quality);
       link.click();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to process the image. Please try again.');
+    } finally {
       setIsProcessing(false);
-    };
-  }, [selectedImage, resize, transform, filters, exportSettings, applyDenoiseInWorker, cropTool]);
+    }
+  }, [selectedImage, renderProcessedCanvas, exportSettings, filters.filters.quality]);
+
+  const splitImage = useCallback(async () => {
+    if (!selectedImage) return;
+    setIsProcessing(true);
+
+    try {
+      const canvas = await renderProcessedCanvas();
+      const mime = exportSettings.getMimeType();
+      const ext = exportSettings.getExtension();
+      const quality = (mime === 'image/jpeg' || mime === 'image/webp')
+        ? filters.filters.quality / 100
+        : undefined;
+      const cols = splitDirection === 'horizontal' ? 1 : Math.max(1, splitColumns);
+      const rows = splitDirection === 'vertical' ? 1 : Math.max(1, splitRows);
+
+      for (let row = 0; row < rows; row += 1) {
+        for (let col = 0; col < cols; col += 1) {
+          const sx = Math.round((col * canvas.width) / cols);
+          const sy = Math.round((row * canvas.height) / rows);
+          const ex = Math.round(((col + 1) * canvas.width) / cols);
+          const ey = Math.round(((row + 1) * canvas.height) / rows);
+          const piece = document.createElement('canvas');
+          piece.width = ex - sx;
+          piece.height = ey - sy;
+          const ctx = piece.getContext('2d');
+          if (!ctx) throw new Error('Failed to initialize canvas. Try a smaller image or refresh the page.');
+          ctx.drawImage(canvas, sx, sy, piece.width, piece.height, 0, 0, piece.width, piece.height);
+
+          const link = document.createElement('a');
+          const suffix = rows > 1 && cols > 1
+            ? `r${row + 1}-c${col + 1}`
+            : rows > 1
+              ? `part-${row + 1}`
+              : `part-${col + 1}`;
+          link.download = `${exportSettings.fileName.trim() || 'split-image'}-${suffix}.${ext}`;
+          link.href = piece.toDataURL(mime, quality);
+          link.click();
+        }
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to split the image. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [selectedImage, renderProcessedCanvas, exportSettings, filters.filters.quality, splitDirection, splitColumns, splitRows]);
 
   // ── Reset all ──────────────────────────────────────────────────────────────
 
@@ -360,7 +421,9 @@ function App() {
               ? 'Upload an image and enhance it with real-time filters'
               : isConvertMode
                 ? 'Upload an image and convert it locally in your browser'
-                : 'Upload an image and reduce file size with resize and compression controls'}
+                : isReduceMode
+                  ? 'Upload an image and reduce file size with resize and compression controls'
+                  : 'Upload an image and split it into multiple pieces locally in your browser'}
           </p>
           <div className="mt-4 inline-flex rounded-xl bg-white/5 border border-white/10 p-1 gap-1">
             <button
@@ -393,6 +456,17 @@ function App() {
               }`}
             >
               Reduce
+            </button>
+            <button
+              onClick={() => {
+                setMode('split');
+                if (exportSettings.format === 'auto') exportSettings.setFormat('png');
+              }}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isSplitMode ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Split
             </button>
           </div>
         </header>
@@ -811,7 +885,7 @@ function App() {
               </div>
             </div>
           </div>
-        ) : (
+        ) : isReduceMode ? (
           <div className="max-w-2xl mx-auto">
             <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5">
               <SectionHeader icon={<Maximize2 className="w-3.5 h-3.5" />} label="Reduce" />
@@ -962,6 +1036,128 @@ function App() {
               </div>
             </div>
           </div>
+        ) : (
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5">
+              <SectionHeader icon={<Crop className="w-3.5 h-3.5" />} label="Split" />
+              <p className="text-sm text-slate-400 mb-4">
+                Split the current processed image into equal vertical, horizontal, or grid-based pieces and download each piece separately.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3">
+                  <p className="text-xs uppercase tracking-widest text-slate-500">Source</p>
+                  <p className="text-sm font-semibold text-slate-200">{selectedImage ? sourceFormatLabel : 'No file selected'}</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3">
+                  <p className="text-xs uppercase tracking-widest text-slate-500">Output Format</p>
+                  <p className="text-sm font-semibold text-slate-200">{outputFormatLabel}</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3">
+                  <p className="text-xs uppercase tracking-widest text-slate-500">Pieces</p>
+                  <p className="text-sm font-semibold text-slate-200">
+                    {splitDirection === 'vertical' ? splitColumns : splitDirection === 'horizontal' ? splitRows : splitColumns * splitRows}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-slate-300 mb-2">Split Direction</p>
+                  <div className="flex gap-2">
+                    {([
+                      { id: 'vertical', label: 'Vertical' },
+                      { id: 'horizontal', label: 'Horizontal' },
+                      { id: 'grid', label: 'Grid' },
+                    ] as const).map((option) => (
+                      <button
+                        key={option.id}
+                        onClick={() => setSplitDirection(option.id)}
+                        className={`flex-1 py-2 text-xs rounded-lg uppercase font-medium transition-colors ${splitDirection === option.id ? 'bg-violet-600 text-white' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {(splitDirection === 'vertical' || splitDirection === 'grid') && (
+                  <div>
+                    <label className="text-sm text-slate-300 mb-2 block">Columns</label>
+                    <input
+                      type="number"
+                      min={2}
+                      value={splitColumns}
+                      onChange={(e) => setSplitColumns(Math.max(2, Number(e.target.value) || 2))}
+                      className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200 outline-none focus:border-violet-500/60 transition-colors"
+                    />
+                  </div>
+                )}
+
+                {(splitDirection === 'horizontal' || splitDirection === 'grid') && (
+                  <div>
+                    <label className="text-sm text-slate-300 mb-2 block">Rows</label>
+                    <input
+                      type="number"
+                      min={2}
+                      value={splitRows}
+                      onChange={(e) => setSplitRows(Math.max(2, Number(e.target.value) || 2))}
+                      className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200 outline-none focus:border-violet-500/60 transition-colors"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <p className="text-sm text-slate-300 mb-2">Format</p>
+                  <div className="flex gap-2">
+                    {(['png', 'jpg', 'webp'] as ExportFormat[]).map((fmt) => (
+                      <button
+                        key={fmt}
+                        onClick={() => exportSettings.setFormat(fmt)}
+                        className={`flex-1 py-2 text-xs rounded-lg uppercase font-medium transition-colors ${exportSettings.format === fmt ? 'bg-violet-600 text-white' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
+                      >
+                        {fmt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {showQuality && (
+                  <SliderRow label="Quality" value={filters.filters.quality} displayValue={`${filters.filters.quality}%`} min={1} max={100} defaultValue={FILTER_DEFAULTS.quality} onChange={(v) => filters.setFilter('quality', v)} />
+                )}
+
+                {showBgColor && (
+                  <div>
+                    <label htmlFor="bg-color-picker" className="text-sm text-slate-300 mb-2 block">Background Color</label>
+                    <div className="flex items-center gap-3 bg-black/20 border border-white/10 rounded-xl px-3 py-2">
+                      <input
+                        id="bg-color-picker"
+                        type="color"
+                        value={exportSettings.bgColor}
+                        onChange={(e) => exportSettings.setBgColor(e.target.value)}
+                        className="w-7 h-7 rounded cursor-pointer border-0 bg-transparent p-0"
+                      />
+                      <span className="text-sm text-slate-300 font-mono" aria-hidden="true">{exportSettings.bgColor}</span>
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <p className="text-sm text-slate-300 mb-2">File Name Prefix</p>
+                  <div className="flex items-center gap-2 bg-black/20 border border-white/10 rounded-xl px-3 py-2 focus-within:border-violet-500/60 transition-colors">
+                    <input
+                      type="text"
+                      value={exportSettings.fileName}
+                      onChange={(e) => exportSettings.setFileName(e.target.value)}
+                      placeholder="split-image"
+                      className="flex-1 bg-transparent text-sm text-slate-200 placeholder-slate-500 outline-none"
+                    />
+                    <span className="text-xs text-slate-500 shrink-0">.{exportSettings.getExtension()}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* ── Action buttons ── */}
@@ -996,7 +1192,7 @@ function App() {
           )}
 
           <button
-            onClick={downloadImage}
+            onClick={isSplitMode ? splitImage : downloadImage}
             disabled={!selectedImage || isProcessing}
             className={`flex-1 py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
               selectedImage && !isProcessing
@@ -1015,7 +1211,7 @@ function App() {
             ) : (
               <>
                 <Download className="w-4 h-4" />
-                {isConvertMode ? 'Convert Image' : isReduceMode ? 'Reduce Image' : 'Download Image'}
+                {isConvertMode ? 'Convert Image' : isReduceMode ? 'Reduce Image' : isSplitMode ? 'Split Image' : 'Download Image'}
               </>
             )}
           </button>

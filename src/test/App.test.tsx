@@ -125,6 +125,7 @@ describe('App — convert mode', () => {
     expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Convert' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Reduce' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Split' })).toBeInTheDocument();
   });
 
   it('switches to convert mode and hides editing sections', async () => {
@@ -142,6 +143,16 @@ describe('App — reduce mode', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Reduce' }));
     expect(screen.getByText(/Reduce file size by resizing the image/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /reduce image/i })).toBeInTheDocument();
+    expect(screen.queryByText('Transform')).not.toBeInTheDocument();
+  });
+});
+
+describe('App — split mode', () => {
+  it('switches to split mode and shows the split panel', async () => {
+    render(<App />);
+    await userEvent.click(screen.getByRole('button', { name: 'Split' }));
+    expect(screen.getByText(/Split the current processed image into equal/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /split image/i })).toBeInTheDocument();
     expect(screen.queryByText('Transform')).not.toBeInTheDocument();
   });
 });
