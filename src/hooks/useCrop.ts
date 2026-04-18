@@ -1,8 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import type { PointerEvent } from 'react';
 import { CropRect, CropHandle, DEFAULT_CROP } from '../types';
-
-const MIN_SIZE = 0.02;
+import { CROP_MIN_SIZE } from '../constants';
 
 export interface ImageBounds { x: number; y: number; w: number; h: number; }
 
@@ -77,8 +76,8 @@ export function useCrop() {
     }
 
     // Enforce minimum size
-    if (w < MIN_SIZE) w = MIN_SIZE;
-    if (h < MIN_SIZE) h = MIN_SIZE;
+    if (w < CROP_MIN_SIZE) w = CROP_MIN_SIZE;
+    if (h < CROP_MIN_SIZE) h = CROP_MIN_SIZE;
 
     // Clamp to image bounds [0, 1]
     x = Math.max(0, Math.min(x, 1 - w));

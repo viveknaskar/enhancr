@@ -7,9 +7,10 @@ interface SliderRowProps {
   step?: number;
   defaultValue?: number;
   onChange: (v: number) => void;
+  onDragStart?: () => void;
 }
 
-export function SliderRow({ label, value, displayValue, min, max, step, defaultValue, onChange }: SliderRowProps) {
+export function SliderRow({ label, value, displayValue, min, max, step, defaultValue, onChange, onDragStart }: SliderRowProps) {
   const isModified = defaultValue !== undefined && value !== defaultValue;
 
   return (
@@ -41,6 +42,7 @@ export function SliderRow({ label, value, displayValue, min, max, step, defaultV
         step={step ?? 1}
         value={value}
         aria-label={label}
+        onPointerDown={onDragStart}
         onChange={(e) => onChange(Number(e.target.value))}
       />
     </div>

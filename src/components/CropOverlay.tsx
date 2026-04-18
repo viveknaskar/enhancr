@@ -2,6 +2,7 @@ import { useRef, useState, useLayoutEffect, useCallback } from 'react';
 import type { PointerEvent } from 'react';
 import { CropRect, CropHandle } from '../types';
 import { ImageBounds } from '../hooks/useCrop';
+import { CROP_SHADOW_SPREAD, CROP_OVERLAY_OPACITY, CROP_GRID_OPACITY } from '../constants';
 
 interface CropOverlayProps {
   crop: CropRect;
@@ -86,7 +87,7 @@ export function CropOverlay({
           top: boxTop,
           width: boxWidth,
           height: boxHeight,
-          boxShadow: '0 0 0 9999px rgba(0,0,0,0.55)',
+          boxShadow: `0 0 0 ${CROP_SHADOW_SPREAD} rgba(0,0,0,${CROP_OVERLAY_OPACITY})`,
           border: '1.5px solid rgba(255,255,255,0.85)',
           boxSizing: 'content-box',
           cursor: 'move',
@@ -96,10 +97,10 @@ export function CropOverlay({
       >
         {/* Rule-of-thirds grid */}
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-          <div style={{ position: 'absolute', left: 0, right: 0, top: '33.33%', height: 1, background: 'rgba(255,255,255,0.35)' }} />
-          <div style={{ position: 'absolute', left: 0, right: 0, top: '66.66%', height: 1, background: 'rgba(255,255,255,0.35)' }} />
-          <div style={{ position: 'absolute', top: 0, bottom: 0, left: '33.33%', width: 1, background: 'rgba(255,255,255,0.35)' }} />
-          <div style={{ position: 'absolute', top: 0, bottom: 0, left: '66.66%', width: 1, background: 'rgba(255,255,255,0.35)' }} />
+          <div style={{ position: 'absolute', left: 0, right: 0, top: '33.33%', height: 1, background: `rgba(255,255,255,${CROP_GRID_OPACITY})` }} />
+          <div style={{ position: 'absolute', left: 0, right: 0, top: '66.66%', height: 1, background: `rgba(255,255,255,${CROP_GRID_OPACITY})` }} />
+          <div style={{ position: 'absolute', top: 0, bottom: 0, left: '33.33%', width: 1, background: `rgba(255,255,255,${CROP_GRID_OPACITY})` }} />
+          <div style={{ position: 'absolute', top: 0, bottom: 0, left: '66.66%', width: 1, background: `rgba(255,255,255,${CROP_GRID_OPACITY})` }} />
         </div>
 
         {/* 8 resize handles */}

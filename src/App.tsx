@@ -6,7 +6,9 @@ import {
   Lock, Unlock, Maximize2, Crop,
 } from 'lucide-react';
 
-import { ExportFormat, ResizeMode, FILTER_DEFAULTS } from './types';
+import { ExportFormat, ResizeMode, FILTER_DEFAULTS, EditSnapshot } from './types';
+import { MAX_UPLOAD_BYTES } from './constants';
+import { useHistory } from './hooks/useHistory';
 import { useFilters } from './hooks/useFilters';
 import { useTransform } from './hooks/useTransform';
 import { useResize } from './hooks/useResize';
@@ -23,6 +25,7 @@ function App() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [mobileTab, setMobileTab] = useState<'transform' | 'color' | 'enhancement'>('transform');
+  const [showOriginal, setShowOriginal] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const activeWorkerRef = useRef<Worker | null>(null);
@@ -37,6 +40,55 @@ function App() {
   const exportSettings = useExport(imageType);
   const cropTool = useCrop();
 
+  // ── Undo / Redo ────────────────────────────────────────────────────────────
+
+  const INITIAL_SNAPSHOT: EditSnapshot = {
+    filters: FILTER_DEFAULTS,
+    rotation: 0,
+    flipH: false,
+    flipV: false,
+  };
+
+  const history = useHistory<EditSnapshot>(INITIAL_SNAPSHOT);
+
+  const captureSnapshot = useCallback((): EditSnapshot => ({
+    filters: { ...filters.filters },
+    rotation: transform.rotation,
+    flipH: transform.flipH,
+    flipV: transform.flipV,
+  }), [filters.filters, transform.rotation, transform.flipH, transform.flipV]);
+
+  const applySnapshot = useCallback((snap: EditSnapshot) => {
+    filters.restoreFilters(snap.filters);
+    transform.restoreTransform(snap.rotation, snap.flipH, snap.flipV);
+  }, [filters, transform]);
+
+  const handleUndo = useCallback(() => {
+    const snap = history.undo();
+    if (snap) applySnapshot(snap);
+  }, [history, applySnapshot]);
+
+  const handleRedo = useCallback(() => {
+    const snap = history.redo();
+    if (snap) applySnapshot(snap);
+  }, [history, applySnapshot]);
+
+  // Keyboard shortcut: Ctrl/Cmd + Z → undo, Ctrl/Cmd + Shift + Z → redo
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      if (e.key === 'z' && !e.shiftKey) { e.preventDefault(); handleUndo(); }
+      if ((e.key === 'z' && e.shiftKey) || e.key === 'y') { e.preventDefault(); handleRedo(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [handleUndo, handleRedo]);
+
+  // Wraps any action: push current state to history, then run the action.
+  const withHistory = useCallback(<T extends unknown[]>(fn: (...args: T) => void) =>
+    (...args: T) => { history.push(captureSnapshot()); fn(...args); },
+  [history, captureSnapshot]);
+
   const outDims = useMemo(
     () => resize.getOutputDimensions(transform.rotation),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -50,15 +102,17 @@ function App() {
   // ── Image loading ──────────────────────────────────────────────────────────
 
   const loadImageFromFile = useCallback((file: File) => {
-    const MAX_MB = 25;
-    if (file.size > MAX_MB * 1024 * 1024) {
-      toast.error(`File is too large (max ${MAX_MB} MB). Please choose a smaller image.`);
+    if (file.size > MAX_UPLOAD_BYTES) {
+      const maxMb = MAX_UPLOAD_BYTES / (1024 * 1024);
+      toast.error(`File is too large (max ${maxMb} MB). Please choose a smaller image.`);
       return;
     }
 
     setImageType(file.type);
     transform.reset();
+    filters.reset();
     cropTool.resetCrop();
+    history.push(INITIAL_SNAPSHOT);
 
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -224,11 +278,12 @@ function App() {
   // ── Reset all ──────────────────────────────────────────────────────────────
 
   const resetAll = useCallback(() => {
+    history.push(captureSnapshot());
     filters.reset();
     transform.reset();
     resize.reset();
     cropTool.resetCrop();
-  }, [filters, transform, resize, cropTool]);
+  }, [filters, transform, resize, cropTool, history, captureSnapshot]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -285,8 +340,22 @@ function App() {
                   src={selectedImage}
                   alt="Preview"
                   className="w-full h-full object-contain"
-                  style={{ filter: filters.filterString, transform: transform.previewTransform }}
+                  style={{
+                    filter: showOriginal ? 'none' : filters.filterString,
+                    transform: showOriginal ? 'none' : transform.previewTransform,
+                  }}
                 />
+                {!isProcessing && !cropTool.cropMode && (
+                  <button
+                    onPointerDown={() => setShowOriginal(true)}
+                    onPointerUp={() => setShowOriginal(false)}
+                    onPointerLeave={() => setShowOriginal(false)}
+                    className="absolute bottom-2 right-2 px-2.5 py-1 rounded-lg text-xs font-medium bg-black/60 text-slate-300 border border-white/10 hover:bg-black/80 select-none"
+                    aria-label={showOriginal ? 'Showing original' : 'Hold to compare original'}
+                  >
+                    {showOriginal ? 'Original' : 'Compare'}
+                  </button>
+                )}
                 {isProcessing && (
                   <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center gap-3 rounded-xl">
                     <svg className="w-8 h-8 animate-spin text-violet-400" viewBox="0 0 24 24" fill="none" aria-label="Processing">
@@ -375,19 +444,19 @@ function App() {
             <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5">
               <SectionHeader icon={<RotateCw className="w-3.5 h-3.5" />} label="Transform" />
               <div className="grid grid-cols-4 gap-2">
-                <IconBtn onClick={transform.rotateLeft} title="Rotate 90° left">
+                <IconBtn onClick={withHistory(transform.rotateLeft)} title="Rotate 90° left">
                   <RotateCcw className="w-4 h-4" />
                   <span>Left</span>
                 </IconBtn>
-                <IconBtn onClick={transform.rotateRight} title="Rotate 90° right">
+                <IconBtn onClick={withHistory(transform.rotateRight)} title="Rotate 90° right">
                   <RotateCw className="w-4 h-4" />
                   <span>Right</span>
                 </IconBtn>
-                <IconBtn onClick={transform.toggleFlipH} active={transform.flipH} title="Flip horizontal">
+                <IconBtn onClick={withHistory(transform.toggleFlipH)} active={transform.flipH} title="Flip horizontal">
                   <FlipHorizontal className="w-4 h-4" />
                   <span>Flip H</span>
                 </IconBtn>
-                <IconBtn onClick={transform.toggleFlipV} active={transform.flipV} title="Flip vertical">
+                <IconBtn onClick={withHistory(transform.toggleFlipV)} active={transform.flipV} title="Flip vertical">
                   <FlipVertical className="w-4 h-4" />
                   <span>Flip V</span>
                 </IconBtn>
@@ -507,11 +576,11 @@ function App() {
           <div className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5 md:block ${mobileTab === 'color' ? 'block' : 'hidden'}`}>
             <SectionHeader icon={<Sparkles className="w-3.5 h-3.5" />} label="Color Adjustments" />
             <div className="space-y-5">
-              <SliderRow label="Brightness" value={filters.filters.brightness} displayValue={`${filters.filters.brightness}%`} min={0} max={200} defaultValue={FILTER_DEFAULTS.brightness} onChange={(v) => filters.setFilter('brightness', v)} />
-              <SliderRow label="Contrast"   value={filters.filters.contrast}   displayValue={`${filters.filters.contrast}%`}   min={0} max={200} defaultValue={FILTER_DEFAULTS.contrast}   onChange={(v) => filters.setFilter('contrast', v)} />
-              <SliderRow label="Saturation" value={filters.filters.saturation} displayValue={`${filters.filters.saturation}%`} min={0} max={200} defaultValue={FILTER_DEFAULTS.saturation} onChange={(v) => filters.setFilter('saturation', v)} />
-              <SliderRow label="Sepia"      value={filters.filters.sepia}      displayValue={`${filters.filters.sepia}%`}      min={0} max={100} defaultValue={FILTER_DEFAULTS.sepia}      onChange={(v) => filters.setFilter('sepia', v)} />
-              <SliderRow label="Grayscale"  value={filters.filters.grayscale}  displayValue={`${filters.filters.grayscale}%`}  min={0} max={100} defaultValue={FILTER_DEFAULTS.grayscale}  onChange={(v) => filters.setFilter('grayscale', v)} />
+              <SliderRow label="Brightness" value={filters.filters.brightness} displayValue={`${filters.filters.brightness}%`} min={0} max={200} defaultValue={FILTER_DEFAULTS.brightness} onChange={(v) => filters.setFilter('brightness', v)} onDragStart={withHistory(() => {})} />
+              <SliderRow label="Contrast"   value={filters.filters.contrast}   displayValue={`${filters.filters.contrast}%`}   min={0} max={200} defaultValue={FILTER_DEFAULTS.contrast}   onChange={(v) => filters.setFilter('contrast', v)} onDragStart={withHistory(() => {})} />
+              <SliderRow label="Saturation" value={filters.filters.saturation} displayValue={`${filters.filters.saturation}%`} min={0} max={200} defaultValue={FILTER_DEFAULTS.saturation} onChange={(v) => filters.setFilter('saturation', v)} onDragStart={withHistory(() => {})} />
+              <SliderRow label="Sepia"      value={filters.filters.sepia}      displayValue={`${filters.filters.sepia}%`}      min={0} max={100} defaultValue={FILTER_DEFAULTS.sepia}      onChange={(v) => filters.setFilter('sepia', v)} onDragStart={withHistory(() => {})} />
+              <SliderRow label="Grayscale"  value={filters.filters.grayscale}  displayValue={`${filters.filters.grayscale}%`}  min={0} max={100} defaultValue={FILTER_DEFAULTS.grayscale}  onChange={(v) => filters.setFilter('grayscale', v)} onDragStart={withHistory(() => {})} />
             </div>
           </div>
 
@@ -522,9 +591,9 @@ function App() {
             <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5">
               <SectionHeader icon={<ZoomIn className="w-3.5 h-3.5" />} label="Enhancement" />
               <div className="space-y-5">
-                <SliderRow label="Sharpen"         value={filters.filters.sharpen} displayValue={filters.filters.sharpen.toFixed(2)} min={0} max={1}   step={0.01} defaultValue={FILTER_DEFAULTS.sharpen} onChange={(v) => filters.setFilter('sharpen', v)} />
-                <SliderRow label="Noise Reduction" value={filters.filters.denoise} displayValue={`${filters.filters.denoise}%`}     min={0} max={100}            defaultValue={FILTER_DEFAULTS.denoise} onChange={(v) => filters.setFilter('denoise', v)} />
-                <SliderRow label="Blur"            value={filters.filters.blur}   displayValue={`${filters.filters.blur}px`}       min={0} max={10}  step={0.1}  defaultValue={FILTER_DEFAULTS.blur}    onChange={(v) => filters.setFilter('blur', v)} />
+                <SliderRow label="Sharpen"         value={filters.filters.sharpen} displayValue={filters.filters.sharpen.toFixed(2)} min={0} max={1}   step={0.01} defaultValue={FILTER_DEFAULTS.sharpen} onChange={(v) => filters.setFilter('sharpen', v)} onDragStart={withHistory(() => {})} />
+                <SliderRow label="Noise Reduction" value={filters.filters.denoise} displayValue={`${filters.filters.denoise}%`}     min={0} max={100}            defaultValue={FILTER_DEFAULTS.denoise} onChange={(v) => filters.setFilter('denoise', v)} onDragStart={withHistory(() => {})} />
+                <SliderRow label="Blur"            value={filters.filters.blur}   displayValue={`${filters.filters.blur}px`}       min={0} max={10}  step={0.1}  defaultValue={FILTER_DEFAULTS.blur}    onChange={(v) => filters.setFilter('blur', v)} onDragStart={withHistory(() => {})} />
               </div>
             </div>
 
@@ -591,6 +660,24 @@ function App() {
             className="px-5 py-3 rounded-xl text-sm font-medium border border-white/10 text-slate-400 hover:text-white hover:border-white/20 transition-colors"
           >
             Reset
+          </button>
+          <button
+            onClick={handleUndo}
+            disabled={!history.canUndo}
+            title="Undo (Ctrl+Z)"
+            aria-label="Undo"
+            className="px-4 py-3 rounded-xl text-sm font-medium border border-white/10 text-slate-400 hover:text-white hover:border-white/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            ↩
+          </button>
+          <button
+            onClick={handleRedo}
+            disabled={!history.canRedo}
+            title="Redo (Ctrl+Shift+Z)"
+            aria-label="Redo"
+            className="px-4 py-3 rounded-xl text-sm font-medium border border-white/10 text-slate-400 hover:text-white hover:border-white/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            ↪
           </button>
 
           <button

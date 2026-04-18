@@ -24,5 +24,11 @@ export function useTransform() {
     setFlipV(false);
   }, []);
 
-  return { rotation, flipH, flipV, rotateLeft, rotateRight, toggleFlipH, toggleFlipV, previewTransform, reset };
+  const restoreTransform = useCallback((rotation: number, flipH: boolean, flipV: boolean) => {
+    setRotation(rotation);
+    setFlipH(flipH);
+    setFlipV(flipV);
+  }, []);
+
+  return { rotation, flipH, flipV, rotateLeft, rotateRight, toggleFlipH, toggleFlipV, previewTransform, reset, restoreTransform };
 }

@@ -41,6 +41,14 @@ export interface CropRect {
 
 export const DEFAULT_CROP: CropRect = { x: 0, y: 0, w: 1, h: 1 };
 
+/** Snapshot of all user-editable filter + transform state for undo/redo. */
+export interface EditSnapshot {
+  filters: FilterState;
+  rotation: number;
+  flipH: boolean;
+  flipV: boolean;
+}
+
 /** The 8 resize handles plus 'move' for the crop-box body drag. */
 export type CropHandle =
   | 'nw' | 'n' | 'ne'

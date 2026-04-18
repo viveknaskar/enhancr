@@ -27,7 +27,9 @@ export function useFilters() {
 
   const reset = useCallback(() => setFilters(FILTER_DEFAULTS), []);
 
+  const restoreFilters = useCallback((state: FilterState) => setFilters(state), []);
+
   const filterString = useMemo(() => buildFilterString(filters), [filters]);
 
-  return { filters, setFilter, filterString, reset };
+  return { filters, setFilter, filterString, reset, restoreFilters };
 }
