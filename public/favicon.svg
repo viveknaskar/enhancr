@@ -1,66 +1,29 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
   <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#7c3aed"/>
-      <stop offset="100%" stop-color="#4f46e5"/>
+    <linearGradient id="tile" x1="8" y1="8" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#172033"/>
+      <stop offset="100%" stop-color="#0a1020"/>
     </linearGradient>
-    <linearGradient id="shine" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.25"/>
-      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    <linearGradient id="stroke" x1="12" y1="12" x2="52" y2="52" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#67e8f9"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
     </linearGradient>
-    <linearGradient id="spark" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#e9d5ff"/>
-      <stop offset="100%" stop-color="#a78bfa"/>
+    <linearGradient id="bar" x1="18" y1="0" x2="47" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#67e8f9"/>
+      <stop offset="100%" stop-color="#22c55e"/>
+    </linearGradient>
+    <linearGradient id="barWarm" x1="22" y1="0" x2="49" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#fb7185"/>
     </linearGradient>
   </defs>
 
-  <!-- Rounded square background -->
-  <rect width="64" height="64" rx="16" fill="url(#bg)"/>
-
-  <!-- Gloss overlay -->
-  <rect width="64" height="32" rx="16" fill="url(#shine)"/>
-  <rect x="0" y="16" width="64" height="16" fill="url(#shine)"/>
-
-  <!-- Image frame -->
-  <rect x="10" y="14" width="36" height="28" rx="4" fill="none" stroke="white" stroke-opacity="0.25" stroke-width="1.5"/>
-  <rect x="10" y="14" width="36" height="28" rx="4" fill="white" fill-opacity="0.07"/>
-
-  <!-- Mountain landscape inside frame -->
-  <clipPath id="frame">
-    <rect x="10" y="14" width="36" height="28" rx="4"/>
-  </clipPath>
-  <g clip-path="url(#frame)">
-    <!-- Sky gradient -->
-    <rect x="10" y="14" width="36" height="28" fill="#312e81" fill-opacity="0.5"/>
-    <!-- Mountains -->
-    <polygon points="10,42 22,24 34,42" fill="#4c1d95" fill-opacity="0.7"/>
-    <polygon points="20,42 30,28 46,42" fill="#5b21b6" fill-opacity="0.6"/>
-    <!-- Sun -->
-    <circle cx="38" cy="22" r="4" fill="#fbbf24" fill-opacity="0.85"/>
-  </g>
-
-  <!-- Sparkle stars (top-right area) -->
-  <!-- Large sparkle -->
-  <g transform="translate(50,13)">
-    <line x1="0" y1="-5.5" x2="0" y2="5.5" stroke="url(#spark)" stroke-width="1.8" stroke-linecap="round"/>
-    <line x1="-5.5" y1="0" x2="5.5" y2="0" stroke="url(#spark)" stroke-width="1.8" stroke-linecap="round"/>
-    <line x1="-3.5" y1="-3.5" x2="3.5" y2="3.5" stroke="url(#spark)" stroke-width="1" stroke-linecap="round" stroke-opacity="0.5"/>
-    <line x1="3.5" y1="-3.5" x2="-3.5" y2="3.5" stroke="url(#spark)" stroke-width="1" stroke-linecap="round" stroke-opacity="0.5"/>
-  </g>
-  <!-- Small sparkle -->
-  <g transform="translate(56,23)">
-    <line x1="0" y1="-3" x2="0" y2="3" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-opacity="0.7"/>
-    <line x1="-3" y1="0" x2="3" y2="0" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-opacity="0.7"/>
-  </g>
-  <!-- Tiny dot sparkle -->
-  <circle cx="53" cy="26" r="1.2" fill="white" fill-opacity="0.5"/>
-
-  <!-- Enhance sliders at bottom -->
-  <rect x="10" y="47" width="44" height="2.5" rx="1.25" fill="white" fill-opacity="0.12"/>
-  <rect x="10" y="47" width="28" height="2.5" rx="1.25" fill="white" fill-opacity="0.55"/>
-  <circle cx="38" cy="48.25" r="3" fill="white" fill-opacity="0.95"/>
-
-  <rect x="10" y="53" width="44" height="2.5" rx="1.25" fill="white" fill-opacity="0.12"/>
-  <rect x="10" y="53" width="18" height="2.5" rx="1.25" fill="#a78bfa" fill-opacity="0.8"/>
-  <circle cx="28" cy="54.25" r="3" fill="#c4b5fd" fill-opacity="0.95"/>
+  <rect x="4" y="4" width="56" height="56" rx="18" fill="url(#tile)"/>
+  <rect x="5" y="5" width="54" height="54" rx="17" stroke="url(#stroke)" stroke-opacity="0.5" stroke-width="2"/>
+  <path d="M20 16H38L20 32H38L20 48" stroke="url(#stroke)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="18" y="20" width="29" height="4" rx="2" fill="url(#bar)"/>
+  <rect x="22" y="30" width="27" height="4" rx="2" fill="url(#barWarm)"/>
+  <rect x="18" y="40" width="19" height="4" rx="2" fill="url(#bar)"/>
+  <circle cx="39.5" cy="42" r="5" fill="#f8fafc"/>
+  <circle cx="46.5" cy="18.5" r="3" fill="#f59e0b"/>
 </svg>

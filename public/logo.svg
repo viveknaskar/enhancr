@@ -1,67 +1,44 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 56" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 56" fill="none">
   <defs>
-    <linearGradient id="iconBg" x1="0" y1="4" x2="48" y2="52" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#7c3aed"/>
-      <stop offset="100%" stop-color="#4f46e5"/>
+    <linearGradient id="tile" x1="6" y1="6" x2="50" y2="50" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#172033"/>
+      <stop offset="100%" stop-color="#0a1020"/>
     </linearGradient>
-    <linearGradient id="shine" x1="0" y1="4" x2="0" y2="30" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.22"/>
-      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    <linearGradient id="stroke" x1="10" y1="10" x2="46" y2="46" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#67e8f9"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
     </linearGradient>
-    <linearGradient id="textGrad" x1="60" y1="0" x2="198" y2="0" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#ffffff"/>
-      <stop offset="60%" stop-color="#e2d9f3"/>
-      <stop offset="100%" stop-color="#a78bfa"/>
+    <linearGradient id="bar" x1="14" y1="0" x2="40" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#67e8f9"/>
+      <stop offset="100%" stop-color="#22c55e"/>
     </linearGradient>
-    <clipPath id="frameClip">
-      <rect x="9" y="16" width="30" height="22" rx="3.5"/>
-    </clipPath>
+    <linearGradient id="barWarm" x1="18" y1="0" x2="41" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#fb7185"/>
+    </linearGradient>
+    <linearGradient id="word" x1="62" y1="18" x2="210" y2="40" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#f8fafc"/>
+      <stop offset="55%" stop-color="#cbd5e1"/>
+      <stop offset="100%" stop-color="#67e8f9"/>
+    </linearGradient>
   </defs>
 
-  <!-- Icon: rounded square background -->
-  <rect x="0" y="4" width="48" height="48" rx="13" fill="url(#iconBg)"/>
+  <rect x="0" y="4" width="48" height="48" rx="14" fill="url(#tile)"/>
+  <rect x="0.75" y="4.75" width="46.5" height="46.5" rx="13.25" stroke="url(#stroke)" stroke-opacity="0.5" stroke-width="1.5"/>
+  <path d="M16 14.5H32L16 30.5H32L16 46.5" stroke="url(#stroke)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="14" y="18" width="26" height="3.5" rx="1.75" fill="url(#bar)"/>
+  <rect x="18" y="27" width="23" height="3.5" rx="1.75" fill="url(#barWarm)"/>
+  <rect x="14" y="36" width="18" height="3.5" rx="1.75" fill="url(#bar)"/>
+  <circle cx="33.5" cy="37.75" r="4.25" fill="#f8fafc"/>
+  <circle cx="39.5" cy="16.5" r="2.5" fill="#f59e0b"/>
 
-  <!-- Gloss sheen -->
-  <rect x="0" y="4" width="48" height="26" rx="13" fill="url(#shine)"/>
-  <rect x="0" y="18" width="48" height="12" fill="url(#shine)"/>
-
-  <!-- Photo frame -->
-  <rect x="9" y="16" width="30" height="22" rx="3.5"
-        fill="white" fill-opacity="0.07"
-        stroke="white" stroke-opacity="0.28" stroke-width="1.5"/>
-
-  <!-- Landscape inside photo frame -->
-  <g clip-path="url(#frameClip)">
-    <rect x="9" y="16" width="30" height="22" fill="#1e1b4b" fill-opacity="0.55"/>
-    <!-- Mountains -->
-    <polygon points="9,38 21,23 33,38" fill="#4c1d95" fill-opacity="0.78"/>
-    <polygon points="19,38 29,27 39,38" fill="#5b21b6" fill-opacity="0.65"/>
-    <!-- Sun -->
-    <circle cx="34" cy="21.5" r="3.5" fill="#fbbf24" fill-opacity="0.88"/>
-  </g>
-
-  <!-- 4-point sparkle top-right (outside frame) -->
-  <g transform="translate(41.5, 11)">
-    <line x1="0" y1="-5.2" x2="0" y2="5.2" stroke="#e9d5ff" stroke-width="1.9" stroke-linecap="round"/>
-    <line x1="-5.2" y1="0" x2="5.2" y2="0" stroke="#e9d5ff" stroke-width="1.9" stroke-linecap="round"/>
-    <line x1="-3.2" y1="-3.2" x2="3.2" y2="3.2" stroke="#c4b5fd" stroke-width="0.9" stroke-linecap="round" stroke-opacity="0.55"/>
-    <line x1="3.2" y1="-3.2" x2="-3.2" y2="3.2" stroke="#c4b5fd" stroke-width="0.9" stroke-linecap="round" stroke-opacity="0.55"/>
-  </g>
-  <!-- Dot accent next to sparkle -->
-  <circle cx="45.5" cy="18.5" r="1.3" fill="white" fill-opacity="0.5"/>
-
-  <!-- Slider bar at bottom of icon -->
-  <rect x="9" y="42.5" width="30" height="2.2" rx="1.1" fill="white" fill-opacity="0.13"/>
-  <rect x="9" y="42.5" width="20" height="2.2" rx="1.1" fill="white" fill-opacity="0.52"/>
-  <circle cx="29" cy="43.6" r="3" fill="white" fill-opacity="0.95"/>
-
-  <!-- Wordmark -->
   <text
-    x="62" y="37"
-    font-family="'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
-    font-size="27"
+    x="61"
+    y="37"
+    font-family="'Avenir Next', 'Segoe UI', sans-serif"
+    font-size="29"
     font-weight="700"
-    letter-spacing="-0.6"
-    fill="url(#textGrad)"
+    letter-spacing="-1.2"
+    fill="url(#word)"
   >enhancr</text>
 </svg>

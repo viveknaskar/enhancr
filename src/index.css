@@ -2,6 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+body {
+  cursor: default;
+}
+
+button,
+a,
+select,
+summary,
+input[type='button'],
+input[type='submit'],
+input[type='reset'],
+input[type='checkbox'],
+input[type='radio'],
+input[type='color'],
+input[type='range'],
+[role='button'] {
+  cursor: pointer;
+}
+
 /* Custom slider styling */
 input[type='range'] {
   @apply w-full h-1.5 rounded-full appearance-none cursor-pointer;
