@@ -43,12 +43,32 @@ describe('useCrop', () => {
     expect(result.current.crop).toEqual(DEFAULT_CROP);
   });
 
+  it('cancelCrop restores the crop that existed before entering crop mode', () => {
+    const { result } = renderHook(() => useCrop());
+    act(() => result.current.restoreCrop({ x: 0.15, y: 0.1, w: 0.7, h: 0.75 }));
+    act(() => result.current.enterCropMode());
+    const bounds = { x: 0, y: 0, w: 500, h: 500 };
+    const down = { clientX: 0, clientY: 0, preventDefault: () => {}, stopPropagation: () => {}, currentTarget: { setPointerCapture: () => {} } } as unknown as React.PointerEvent;
+    act(() => result.current.onHandlePointerDown('se', down));
+    act(() => result.current.onPointerMove({ clientX: 100, clientY: 100 } as unknown as React.PointerEvent, bounds));
+    act(() => result.current.cancelCrop());
+    expect(result.current.crop).toEqual({ x: 0.15, y: 0.1, w: 0.7, h: 0.75 });
+  });
+
   it('resetCrop restores default crop and exits crop mode', () => {
     const { result } = renderHook(() => useCrop());
     act(() => result.current.enterCropMode());
     act(() => result.current.resetCrop());
     expect(result.current.cropMode).toBe(false);
     expect(result.current.crop).toEqual(DEFAULT_CROP);
+  });
+
+  it('restoreCrop restores the crop and exits crop mode', () => {
+    const { result } = renderHook(() => useCrop());
+    act(() => result.current.enterCropMode());
+    act(() => result.current.restoreCrop({ x: 0.1, y: 0.2, w: 0.6, h: 0.5 }));
+    expect(result.current.cropMode).toBe(false);
+    expect(result.current.crop).toEqual({ x: 0.1, y: 0.2, w: 0.6, h: 0.5 });
   });
 
   it('onHandlePointerDown sets isDragging to true', () => {

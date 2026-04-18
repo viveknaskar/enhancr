@@ -118,4 +118,23 @@ describe('useResize', () => {
     expect(result.current.width).toBe(800);
     expect(result.current.height).toBe(600);
   });
+
+  it('restoreResize restores the full resize state', () => {
+    const { result } = renderHook(() => useResize());
+    act(() => result.current.init(800, 600));
+    act(() => result.current.restoreResize({
+      enabled: true,
+      width: 320,
+      height: 240,
+      unit: 'px',
+      mode: 'crop',
+      lockAspect: false,
+    }));
+    expect(result.current.enabled).toBe(true);
+    expect(result.current.width).toBe(320);
+    expect(result.current.height).toBe(240);
+    expect(result.current.unit).toBe('px');
+    expect(result.current.mode).toBe('crop');
+    expect(result.current.lockAspect).toBe(false);
+  });
 });

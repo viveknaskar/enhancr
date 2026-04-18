@@ -6,7 +6,7 @@ import {
   Lock, Unlock, Maximize2, Crop,
 } from 'lucide-react';
 
-import { ExportFormat, ResizeMode, FILTER_DEFAULTS, EditSnapshot } from './types';
+import { ExportFormat, ResizeMode, FILTER_DEFAULTS, EditSnapshot, DEFAULT_CROP } from './types';
 import { MAX_UPLOAD_BYTES } from './constants';
 import { useHistory } from './hooks/useHistory';
 import { useFilters } from './hooks/useFilters';
@@ -18,6 +18,22 @@ import { SliderRow } from './components/SliderRow';
 import { SectionHeader } from './components/SectionHeader';
 import { IconBtn } from './components/IconBtn';
 import { CropOverlay } from './components/CropOverlay';
+
+const INITIAL_SNAPSHOT: EditSnapshot = {
+  filters: FILTER_DEFAULTS,
+  rotation: 0,
+  flipH: false,
+  flipV: false,
+  crop: DEFAULT_CROP,
+  resize: {
+    enabled: false,
+    width: 0,
+    height: 0,
+    unit: 'px',
+    mode: 'fit',
+    lockAspect: true,
+  },
+};
 
 function App() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -42,13 +58,6 @@ function App() {
 
   // ── Undo / Redo ────────────────────────────────────────────────────────────
 
-  const INITIAL_SNAPSHOT: EditSnapshot = {
-    filters: FILTER_DEFAULTS,
-    rotation: 0,
-    flipH: false,
-    flipV: false,
-  };
-
   const history = useHistory<EditSnapshot>(INITIAL_SNAPSHOT);
 
   const captureSnapshot = useCallback((): EditSnapshot => ({
@@ -56,12 +65,35 @@ function App() {
     rotation: transform.rotation,
     flipH: transform.flipH,
     flipV: transform.flipV,
-  }), [filters.filters, transform.rotation, transform.flipH, transform.flipV]);
+    crop: { ...cropTool.crop },
+    resize: {
+      enabled: resize.enabled,
+      width: resize.width,
+      height: resize.height,
+      unit: resize.unit,
+      mode: resize.mode,
+      lockAspect: resize.lockAspect,
+    },
+  }), [
+    cropTool.crop,
+    filters.filters,
+    resize.enabled,
+    resize.height,
+    resize.lockAspect,
+    resize.mode,
+    resize.unit,
+    resize.width,
+    transform.flipH,
+    transform.flipV,
+    transform.rotation,
+  ]);
 
   const applySnapshot = useCallback((snap: EditSnapshot) => {
     filters.restoreFilters(snap.filters);
     transform.restoreTransform(snap.rotation, snap.flipH, snap.flipV);
-  }, [filters, transform]);
+    cropTool.restoreCrop(snap.crop);
+    resize.restoreResize(snap.resize);
+  }, [cropTool, filters, resize, transform]);
 
   const handleUndo = useCallback(() => {
     const snap = history.undo();
@@ -88,6 +120,13 @@ function App() {
   const withHistory = useCallback(<T extends unknown[]>(fn: (...args: T) => void) =>
     (...args: T) => { history.push(captureSnapshot()); fn(...args); },
   [history, captureSnapshot]);
+
+  const applyCropWithHistory = useCallback(() => {
+    const snap = captureSnapshot();
+    snap.crop = cropTool.getCropBeforeEdit();
+    history.push(snap);
+    cropTool.applyCrop();
+  }, [captureSnapshot, cropTool, history]);
 
   const outDims = useMemo(
     () => resize.getOutputDimensions(transform.rotation),
@@ -130,7 +169,7 @@ function App() {
       toast.error('Failed to read the file. Please try again.');
     };
     reader.readAsDataURL(file);
-  }, [transform, resize, cropTool]);
+  }, [cropTool, filters, history, resize, transform]);
 
   const handleImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -471,7 +510,7 @@ function App() {
                     </p>
                     <div className="flex gap-2">
                       <button
-                        onClick={cropTool.applyCrop}
+                        onClick={applyCropWithHistory}
                         className="flex-1 py-1.5 text-xs rounded-lg font-semibold bg-violet-600 hover:bg-violet-500 text-white transition-colors"
                       >
                         Apply
@@ -501,11 +540,11 @@ function App() {
                 <div className="text-violet-400"><Maximize2 className="w-3.5 h-3.5" /></div>
                 <span className="text-xs font-semibold uppercase tracking-widest text-slate-400">Resize</span>
                 <div className="flex-1 h-px bg-white/5" />
-                <button
-                  onClick={() => resize.setEnabled((v) => !v)}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
-                    resize.enabled ? 'bg-violet-600 text-white' : 'bg-white/10 text-slate-400 hover:bg-white/15'
-                  }`}
+                  <button
+                    onClick={withHistory(() => resize.setEnabled((v) => !v))}
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
+                      resize.enabled ? 'bg-violet-600 text-white' : 'bg-white/10 text-slate-400 hover:bg-white/15'
+                    }`}
                 >
                   {resize.enabled ? 'On' : 'Off'}
                 </button>
@@ -518,12 +557,12 @@ function App() {
                       <label className="text-xs text-slate-500 mb-1 block">Width</label>
                       <input
                         type="number" min={1} value={resize.width}
-                        onChange={(e) => resize.handleWidthChange(Number(e.target.value))}
+                        onChange={withHistory((e: React.ChangeEvent<HTMLInputElement>) => resize.handleWidthChange(Number(e.target.value)))}
                         className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200 outline-none focus:border-violet-500/60 transition-colors"
                       />
                     </div>
                     <button
-                      onClick={() => resize.setLockAspect((v) => !v)}
+                      onClick={withHistory(() => resize.setLockAspect((v) => !v))}
                       title={resize.lockAspect ? 'Unlock aspect ratio' : 'Lock aspect ratio'}
                       className={`p-2 rounded-lg transition-colors ${resize.lockAspect ? 'text-violet-400 bg-violet-500/15' : 'text-slate-500 bg-white/5 hover:bg-white/10'}`}
                     >
@@ -533,13 +572,13 @@ function App() {
                       <label className="text-xs text-slate-500 mb-1 block">Height</label>
                       <input
                         type="number" min={1} value={resize.height}
-                        onChange={(e) => resize.handleHeightChange(Number(e.target.value))}
+                        onChange={withHistory((e: React.ChangeEvent<HTMLInputElement>) => resize.handleHeightChange(Number(e.target.value)))}
                         className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200 outline-none focus:border-violet-500/60 transition-colors"
                       />
                     </div>
                     <select
                       value={resize.unit}
-                      onChange={(e) => resize.handleUnitChange(e.target.value as typeof resize.unit)}
+                      onChange={withHistory((e: React.ChangeEvent<HTMLSelectElement>) => resize.handleUnitChange(e.target.value as typeof resize.unit))}
                       className="bg-black/30 border border-white/10 rounded-lg px-2 py-2 text-sm text-slate-300 outline-none focus:border-violet-500/60 transition-colors"
                     >
                       <option value="px">px</option>
@@ -551,7 +590,7 @@ function App() {
                     <div className="flex gap-2">
                       {(['fit', 'stretch', 'crop'] as ResizeMode[]).map((m) => (
                         <button
-                          key={m} onClick={() => resize.setMode(m)}
+                          key={m} onClick={withHistory(() => resize.setMode(m))}
                           className={`flex-1 py-1.5 text-xs rounded-lg capitalize transition-colors ${resize.mode === m ? 'bg-violet-600 text-white' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
                         >
                           {m}

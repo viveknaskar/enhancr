@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { ResizeMode, ResizeUnit } from '../types';
+import { ResizeMode, ResizeState, ResizeUnit } from '../types';
 
 export function useResize() {
   const [enabled, setEnabled] = useState(false);
@@ -76,6 +76,15 @@ export function useResize() {
     return rotation === 90 || rotation === 270 ? { w: outH, h: outW } : { w: outW, h: outH };
   }, [originalDimensions, enabled, unit, width, height, mode]);
 
+  const restoreResize = useCallback((state: ResizeState) => {
+    setEnabled(state.enabled);
+    setWidth(state.width);
+    setHeight(state.height);
+    setUnit(state.unit);
+    setMode(state.mode);
+    setLockAspect(state.lockAspect);
+  }, []);
+
   return {
     enabled, setEnabled,
     width, height, unit, mode, setMode,
@@ -83,6 +92,6 @@ export function useResize() {
     originalDimensions,
     init, reset,
     handleWidthChange, handleHeightChange, handleUnitChange,
-    getOutputDimensions,
+    getOutputDimensions, restoreResize,
   };
 }

@@ -15,6 +15,7 @@ export function useCrop() {
   // Mirror of crop state in a ref so event handlers always see the latest value
   // without needing it as a useCallback dependency.
   const cropRef = useRef<CropRect>(DEFAULT_CROP);
+  const cropBeforeEditRef = useRef<CropRect>(DEFAULT_CROP);
   const dragging = useRef<CropHandle | null>(null);
   const dragStart = useRef<DragState | null>(null);
 
@@ -24,6 +25,7 @@ export function useCrop() {
   }, []);
 
   const enterCropMode = useCallback(() => {
+    cropBeforeEditRef.current = cropRef.current;
     setCrop(DEFAULT_CROP);
     setCropMode(true);
   }, [setCrop]);
@@ -35,7 +37,7 @@ export function useCrop() {
 
   /** Discard the selection and exit crop mode. */
   const cancelCrop = useCallback(() => {
-    setCrop(DEFAULT_CROP);
+    setCrop(cropBeforeEditRef.current);
     setCropMode(false);
   }, [setCrop]);
 
@@ -44,6 +46,14 @@ export function useCrop() {
     setCrop(DEFAULT_CROP);
     setCropMode(false);
   }, [setCrop]);
+
+  const restoreCrop = useCallback((next: CropRect) => {
+    cropBeforeEditRef.current = next;
+    setCrop(next);
+    setCropMode(false);
+  }, [setCrop]);
+
+  const getCropBeforeEdit = useCallback(() => cropBeforeEditRef.current, []);
 
   const onHandlePointerDown = useCallback((handle: CropHandle, e: PointerEvent) => {
     e.preventDefault();
@@ -94,5 +104,5 @@ export function useCrop() {
     setIsDragging(false);
   }, []);
 
-  return { cropMode, enterCropMode, applyCrop, cancelCrop, crop, resetCrop, onHandlePointerDown, onPointerMove, onPointerUp, isDragging };
+  return { cropMode, enterCropMode, applyCrop, cancelCrop, crop, resetCrop, restoreCrop, getCropBeforeEdit, onHandlePointerDown, onPointerMove, onPointerUp, isDragging };
 }

@@ -41,12 +41,23 @@ export interface CropRect {
 
 export const DEFAULT_CROP: CropRect = { x: 0, y: 0, w: 1, h: 1 };
 
+export interface ResizeState {
+  enabled: boolean;
+  width: number;
+  height: number;
+  unit: ResizeUnit;
+  mode: ResizeMode;
+  lockAspect: boolean;
+}
+
 /** Snapshot of all user-editable filter + transform state for undo/redo. */
 export interface EditSnapshot {
   filters: FilterState;
   rotation: number;
   flipH: boolean;
   flipV: boolean;
+  crop: CropRect;
+  resize: ResizeState;
 }
 
 /** The 8 resize handles plus 'move' for the crop-box body drag. */
