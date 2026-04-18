@@ -68,13 +68,13 @@
 
   <text
     x="378"
-    y="360"
+    y="355"
     font-family="'Avenir Next', 'Segoe UI', sans-serif"
-    font-size="30"
+    font-size="26"
     font-weight="500"
     fill="#cbd5e1"
     fill-opacity="0.9"
-  >Local image editing, conversion, reduction, and splitting in the browser.</text>
+  >Image editing, conversion, reduction &amp; splitting — all in your browser.</text>
 
   <g transform="translate(380 415)">
     <rect x="0" y="0" width="138" height="42" rx="21" fill="#0f172a" stroke="#155e75" stroke-opacity="0.7"/>
