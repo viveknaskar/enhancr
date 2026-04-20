@@ -23,7 +23,7 @@ A browser-based image editor with four dedicated modes — Edit, Convert, Reduce
 | Mode | What it does |
 |---|---|
 | **Edit** | Full editing suite — color adjustments, enhancement filters, crop, resize, rotate, and flip |
-| **Convert** | Convert an image to a different format (JPG, PNG, WebP, AVIF, TIFF) with one click |
+| **Convert** | Convert an image to a different format (JPG, PNG, WebP) with one click |
 | **Reduce** | Shrink file size by tuning format, quality, and dimensions together |
 | **Split** | Divide an image into equal pieces (vertical, horizontal, or grid) with individual downloads |
 
@@ -33,12 +33,12 @@ A browser-based image editor with four dedicated modes — Edit, Convert, Reduce
 
 | Category | Controls |
 |---|---|
-| Color Adjustments | Brightness, Contrast, Saturation, Sepia, Grayscale (0–200%) |
+| Color Adjustments | Brightness, Contrast, Saturation (0–200%), Sepia, Grayscale (0–100%) |
 | Enhancement | Sharpen, Noise Reduction, Blur |
 | Transform | Rotate 90° left/right, Flip horizontal/vertical |
 | Crop | Interactive crop box with 8 handles and rule-of-thirds grid, works on touch screens |
 | Resize | Custom dimensions (px or %), fit / stretch / crop modes, aspect ratio lock |
-| Export | Format (Auto / JPG / PNG / WebP / AVIF / TIFF), JPEG quality, custom filename, background color |
+| Export | Format (Auto / JPG / PNG / WebP), JPEG quality, custom filename, background color |
 
 - **Real-time preview** — filters, transforms, and crop overlay update instantly
 - **Visual crop tool** — drag the crop box to position, drag handles to resize; the area outside the selection is dimmed and a live pixel-dimension label updates as you adjust
