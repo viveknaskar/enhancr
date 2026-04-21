@@ -399,6 +399,9 @@ function App() {
           outDims={outDims}
           resizeEnabled={resize.enabled}
           rotation={transform.rotation}
+          splitDirection={splitDirection}
+          splitColumns={splitColumns}
+          splitRows={splitRows}
           isDraggingCrop={cropTool.isDragging}
           onHandlePointerDown={cropTool.onHandlePointerDown}
           onPointerMove={cropTool.onPointerMove}

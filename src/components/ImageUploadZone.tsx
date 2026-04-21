@@ -3,6 +3,9 @@ import { Upload } from 'lucide-react';
 import type { CropRect, CropHandle } from '../types';
 import type { ImageBounds } from '../hooks/useCrop';
 import { CropOverlay } from './CropOverlay';
+import { SplitOverlay } from './SplitOverlay';
+
+type SplitDirection = 'vertical' | 'horizontal' | 'grid';
 
 type AppMode = 'edit' | 'convert' | 'reduce' | 'split';
 
@@ -21,6 +24,9 @@ interface Props {
   outDims: { w: number; h: number } | null;
   resizeEnabled: boolean;
   rotation: number;
+  splitDirection?: SplitDirection;
+  splitColumns?: number;
+  splitRows?: number;
   isDraggingCrop: boolean;
   onHandlePointerDown: (handle: CropHandle, e: React.PointerEvent) => void;
   onPointerMove: (e: React.PointerEvent, bounds: ImageBounds) => void;
@@ -37,6 +43,7 @@ export function ImageUploadZone({
   selectedImage, isDragging, isProcessing, showOriginal, mode, setShowOriginal,
   filterString, previewTransform, cropMode, crop, originalDimensions, outDims,
   resizeEnabled, rotation, isDraggingCrop,
+  splitDirection, splitColumns, splitRows,
   onHandlePointerDown, onPointerMove, onPointerUp,
   onDrop, onDragOver, onDragLeave, onFileChange, onReplaceClick, fileInputRef,
 }: Props) {
@@ -101,6 +108,15 @@ export function ImageUploadZone({
                 onPointerMove={onPointerMove}
                 onPointerUp={onPointerUp}
                 isDragging={isDraggingCrop}
+              />
+            )}
+            {mode === 'split' && originalDimensions && splitDirection !== undefined && (
+              <SplitOverlay
+                splitDirection={splitDirection}
+                splitColumns={splitColumns ?? 2}
+                splitRows={splitRows ?? 2}
+                naturalWidth={originalDimensions.w}
+                naturalHeight={originalDimensions.h}
               />
             )}
           </>
