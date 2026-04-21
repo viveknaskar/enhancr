@@ -96,10 +96,10 @@ export function SplitMode({
 
           {(splitDirection === 'vertical' || splitDirection === 'grid') && (
             <div>
-              <label className="text-sm text-slate-300 mb-2 block">Columns</label>
+              <label className="text-sm text-slate-300 mb-2 block">Columns <span className="text-slate-500">(max 12)</span></label>
               <input
-                type="number" min={2} value={splitColumns}
-                onChange={(e) => setSplitColumns(Math.max(2, Number(e.target.value) || 2))}
+                type="number" min={2} max={12} value={splitColumns}
+                onChange={(e) => setSplitColumns(Math.min(12, Math.max(2, Number(e.target.value) || 2)))}
                 className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200 outline-none focus:border-violet-500/60 transition-colors"
               />
             </div>
@@ -107,10 +107,10 @@ export function SplitMode({
 
           {(splitDirection === 'horizontal' || splitDirection === 'grid') && (
             <div>
-              <label className="text-sm text-slate-300 mb-2 block">Rows</label>
+              <label className="text-sm text-slate-300 mb-2 block">Rows <span className="text-slate-500">(max 12)</span></label>
               <input
-                type="number" min={2} value={splitRows}
-                onChange={(e) => setSplitRows(Math.max(2, Number(e.target.value) || 2))}
+                type="number" min={2} max={12} value={splitRows}
+                onChange={(e) => setSplitRows(Math.min(12, Math.max(2, Number(e.target.value) || 2)))}
                 className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200 outline-none focus:border-violet-500/60 transition-colors"
               />
             </div>
