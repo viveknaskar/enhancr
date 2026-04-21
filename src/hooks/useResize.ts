@@ -51,24 +51,25 @@ export function useResize() {
     }
   }, [originalDimensions]);
 
-  const getOutputDimensions = useCallback((rotation: number) => {
-    if (!originalDimensions) return null;
-    let outW = originalDimensions.w;
-    let outH = originalDimensions.h;
+  const getOutputDimensions = useCallback((rotation: number, base?: { w: number; h: number }) => {
+    const src = base ?? originalDimensions;
+    if (!src) return null;
+    let outW = src.w;
+    let outH = src.h;
 
     if (enabled) {
       if (unit === '%') {
-        outW = Math.round(originalDimensions.w * width / 100);
-        outH = Math.round(originalDimensions.h * height / 100);
+        outW = Math.round(src.w * width / 100);
+        outH = Math.round(src.h * height / 100);
       } else {
-        const tw = width || originalDimensions.w;
-        const th = height || originalDimensions.h;
+        const tw = width || src.w;
+        const th = height || src.h;
         if (mode === 'stretch' || mode === 'crop') {
           outW = tw; outH = th;
         } else {
-          const scale = Math.min(tw / originalDimensions.w, th / originalDimensions.h);
-          outW = Math.round(originalDimensions.w * scale);
-          outH = Math.round(originalDimensions.h * scale);
+          const scale = Math.min(tw / src.w, th / src.h);
+          outW = Math.round(src.w * scale);
+          outH = Math.round(src.h * scale);
         }
       }
     }

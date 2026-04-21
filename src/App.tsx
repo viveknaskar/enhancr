@@ -118,11 +118,14 @@ function App() {
 
   // ── Derived values ─────────────────────────────────────────────────────────
 
-  const outDims = useMemo(
-    () => resize.getOutputDimensions(transform.rotation),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [resize.getOutputDimensions, transform.rotation],
-  );
+  const outDims = useMemo(() => {
+    const orig = resize.originalDimensions;
+    const base = orig
+      ? { w: Math.round(cropTool.crop.w * orig.w), h: Math.round(cropTool.crop.h * orig.h) }
+      : undefined;
+    return resize.getOutputDimensions(transform.rotation, base);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resize.getOutputDimensions, resize.originalDimensions, transform.rotation, cropTool.crop]);
 
   const outputMime = exportSettings.getMimeType();
   const showBgColor = outputMime === 'image/jpeg';
