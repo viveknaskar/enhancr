@@ -4,7 +4,7 @@
 
 ![enhancr](public/og-image.svg)
 
-A browser-based image editor with four dedicated modes — Edit, Convert, Reduce, and Split — all running locally in your browser with no uploads and no server.
+A browser-based image editor with four dedicated modes: Edit, Convert, Reduce, and Split, all running locally in your browser with no uploads and no server.
 
 **Live demo:** https://viveknaskar.github.io/enhancr/
 
