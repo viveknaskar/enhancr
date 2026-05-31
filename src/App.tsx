@@ -141,6 +141,7 @@ function App() {
       return;
     }
     setImageType(file.type);
+    exportSettings.setFileName(file.name.replace(/\.[^/.]+$/, ''));
     transform.reset();
     filters.reset();
     cropTool.resetCrop();
@@ -160,7 +161,7 @@ function App() {
     };
     reader.onerror = () => toast.error('Failed to read the file. Please try again.');
     reader.readAsDataURL(file);
-  }, [cropTool, filters, history, resize, transform]);
+  }, [cropTool, exportSettings, filters, history, resize, transform]);
 
   const handleImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

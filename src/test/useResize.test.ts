@@ -9,18 +9,20 @@ describe('useResize', () => {
     expect(result.current.originalDimensions).toBeNull();
   });
 
-  it('sets dimensions and disables resize on init', () => {
+  it('defaults to an enabled 70% × 70% resize on init', () => {
     const { result } = renderHook(() => useResize());
     act(() => result.current.init(1920, 1080));
-    expect(result.current.width).toBe(1920);
-    expect(result.current.height).toBe(1080);
+    expect(result.current.width).toBe(70);
+    expect(result.current.height).toBe(70);
+    expect(result.current.unit).toBe('%');
     expect(result.current.originalDimensions).toEqual({ w: 1920, h: 1080 });
-    expect(result.current.enabled).toBe(false);
+    expect(result.current.enabled).toBe(true);
   });
 
   it('locks aspect ratio when changing width', () => {
     const { result } = renderHook(() => useResize());
     act(() => result.current.init(1000, 500)); // 2:1
+    act(() => result.current.handleUnitChange('px'));
     act(() => result.current.handleWidthChange(500));
     expect(result.current.height).toBe(250);
   });
@@ -28,6 +30,7 @@ describe('useResize', () => {
   it('locks aspect ratio when changing height', () => {
     const { result } = renderHook(() => useResize());
     act(() => result.current.init(1000, 500)); // 2:1
+    act(() => result.current.handleUnitChange('px'));
     act(() => result.current.handleHeightChange(250));
     expect(result.current.width).toBe(500);
   });
@@ -35,6 +38,7 @@ describe('useResize', () => {
   it('does not lock aspect ratio when lockAspect is false', () => {
     const { result } = renderHook(() => useResize());
     act(() => result.current.init(1000, 500));
+    act(() => result.current.handleUnitChange('px'));
     act(() => result.current.setLockAspect(false));
     act(() => result.current.handleWidthChange(200));
     expect(result.current.height).toBe(500); // unchanged
@@ -61,30 +65,42 @@ describe('useResize', () => {
   it('getOutputDimensions returns original dims when resize is disabled', () => {
     const { result } = renderHook(() => useResize());
     act(() => result.current.init(800, 600));
+    act(() => result.current.setEnabled(false));
     expect(result.current.getOutputDimensions(0)).toEqual({ w: 800, h: 600 });
+  });
+
+  it('getOutputDimensions applies the default 70% resize', () => {
+    const { result } = renderHook(() => useResize());
+    act(() => result.current.init(800, 600));
+    // 70% of 800×600 → 560×420
+    expect(result.current.getOutputDimensions(0)).toEqual({ w: 560, h: 420 });
   });
 
   it('getOutputDimensions swaps w/h for 90° rotation', () => {
     const { result } = renderHook(() => useResize());
     act(() => result.current.init(800, 600));
+    act(() => result.current.setEnabled(false));
     expect(result.current.getOutputDimensions(90)).toEqual({ w: 600, h: 800 });
   });
 
   it('getOutputDimensions swaps w/h for 270° rotation', () => {
     const { result } = renderHook(() => useResize());
     act(() => result.current.init(800, 600));
+    act(() => result.current.setEnabled(false));
     expect(result.current.getOutputDimensions(270)).toEqual({ w: 600, h: 800 });
   });
 
   it('getOutputDimensions does not swap for 180° rotation', () => {
     const { result } = renderHook(() => useResize());
     act(() => result.current.init(800, 600));
+    act(() => result.current.setEnabled(false));
     expect(result.current.getOutputDimensions(180)).toEqual({ w: 800, h: 600 });
   });
 
   it('getOutputDimensions respects fit mode — scales to fit target', () => {
     const { result } = renderHook(() => useResize());
     act(() => result.current.init(1000, 500));
+    act(() => result.current.handleUnitChange('px'));
     act(() => result.current.setEnabled(true));
     act(() => result.current.setMode('fit'));
     act(() => result.current.setLockAspect(false));
@@ -98,6 +114,7 @@ describe('useResize', () => {
   it('getOutputDimensions respects stretch mode', () => {
     const { result } = renderHook(() => useResize());
     act(() => result.current.init(1000, 500));
+    act(() => result.current.handleUnitChange('px'));
     act(() => result.current.setEnabled(true));
     act(() => result.current.setMode('stretch'));
     act(() => result.current.setLockAspect(false));

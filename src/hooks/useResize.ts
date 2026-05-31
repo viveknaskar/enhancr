@@ -10,12 +10,16 @@ export function useResize() {
   const [lockAspect, setLockAspect] = useState(true);
   const [originalDimensions, setOriginalDimensions] = useState<{ w: number; h: number } | null>(null);
 
-  /** Call when a new image is loaded to set baseline dimensions. */
+  /**
+   * Call when a new image is loaded to set baseline dimensions.
+   * Defaults to a 70% × 70% resize so a dropped image is reduced out of the box.
+   */
   const init = useCallback((w: number, h: number) => {
     setOriginalDimensions({ w, h });
-    setWidth(w);
-    setHeight(h);
-    setEnabled(false);
+    setUnit('%');
+    setWidth(70);
+    setHeight(70);
+    setEnabled(true);
   }, []);
 
   const reset = useCallback(() => {
